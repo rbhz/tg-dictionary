@@ -25,9 +25,6 @@ func (b *BoltStorage) Get(word string) (*DictionaryItem, error) {
 	var res *DictionaryItem
 	if err := b.db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketDictionary))
-		if bucket == nil {
-			return errors.New("missing dictionary bucket")
-		}
 		jdata := bucket.Get([]byte(word))
 		if len(jdata) == 0 {
 			return nil
@@ -46,9 +43,6 @@ func (b *BoltStorage) Get(word string) (*DictionaryItem, error) {
 func (b *BoltStorage) Save(item DictionaryItem) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketDictionary))
-		if bucket == nil {
-			return errors.New("missing dictionary bucket")
-		}
 		jdata, err := json.Marshal(item)
 		if err != nil {
 			return fmt.Errorf("failed to marshal event: %w", err)
@@ -63,15 +57,12 @@ func (b *BoltStorage) Save(item DictionaryItem) error {
 // Save dictionary item to user dictionary
 func (b *BoltStorage) SaveForUser(item DictionaryItem, user UserID) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
-		buckets := tx.Bucket([]byte(bucketUsersDictionaries))
-		if buckets == nil {
-			return errors.New("missing users dictionary bucket")
-		}
-		bucket, err := buckets.CreateBucketIfNotExists([]byte(strconv.FormatInt(int64(user), 10)))
+		bucket := tx.Bucket([]byte(bucketUsersDictionaries))
+		userBucket, err := bucket.CreateBucketIfNotExists([]byte(strconv.FormatInt(int64(user), 10)))
 		if err != nil {
 			return errors.New("failed to create bucket")
 		}
-		if len(bucket.Get([]byte(item.Word))) != 0 {
+		if len(userBucket.Get([]byte(item.Word))) != 0 {
 			// already exists
 			return nil
 		}
@@ -80,7 +71,7 @@ func (b *BoltStorage) SaveForUser(item DictionaryItem, user UserID) error {
 		if err != nil {
 			return errors.New("failed to marshal users event")
 		}
-		bucket.Put([]byte(item.Word), jdata)
+		userBucket.Put([]byte(item.Word), jdata)
 		return nil
 	})
 }
