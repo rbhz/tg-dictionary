@@ -3,6 +3,7 @@ package db
 import (
 	"testing"
 	"tg-dictionary/app/clients/dictionaryapi"
+	"tg-dictionary/app/clients/mymemory"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +13,7 @@ func ptrStr(s string) *string {
 }
 
 func TestNewDictionaryItem(t *testing.T) {
-	getResponse := func() []dictionaryapi.WordResponse {
+	getDictionaryResponse := func() []dictionaryapi.WordResponse {
 		return []dictionaryapi.WordResponse{
 			{
 				Word:     "test",
@@ -70,6 +71,18 @@ func TestNewDictionaryItem(t *testing.T) {
 		}
 	}
 
+	getTranlationsResponse := func() mymemory.TranslationResponse {
+		return mymemory.TranslationResponse{
+			Result: mymemory.TranslationResult{
+				Text: "Test",
+			},
+			Matches: []mymemory.TranslationMatch{
+				{Target: "ru-RU"},
+				{Target: "en-US"},
+			},
+		}
+	}
+
 	getExpected := func() DictionaryItem {
 		expected := DictionaryItem{
 			Word: "test",
@@ -96,6 +109,9 @@ func TestNewDictionaryItem(t *testing.T) {
 					Antonyms:     []string{},
 				},
 			},
+			Translations: []tranlation{
+				{Text: "Test", Language: "ru-RU"},
+			},
 		}
 		expected.Phonetics.Text = "phon_in1"
 		expected.Phonetics.Audio = "phon_audio1"
@@ -103,22 +119,23 @@ func TestNewDictionaryItem(t *testing.T) {
 	}
 
 	t.Run("full", func(t *testing.T) {
-		actual := NewDictionaryItem("test", getResponse())
+		tranlationResponse := getTranlationsResponse()
+		actual := NewDictionaryItem("test", getDictionaryResponse(), &tranlationResponse)
 		assert.Equal(t, getExpected(), actual)
 	})
 
 	t.Run("second_phonetics", func(t *testing.T) {
-		response := getResponse()
+		response := getDictionaryResponse()
 		response[0].Phonetics[0].Audio = nil
 		expected := getExpected()
 		expected.Phonetics.Text = "phon_in2"
 		expected.Phonetics.Audio = "phon_audio2"
-
-		actual := NewDictionaryItem("test", response)
+		tranlationResponse := getTranlationsResponse()
+		actual := NewDictionaryItem("test", response, &tranlationResponse)
 		assert.Equal(t, expected, actual)
 	})
 	t.Run("empty", func(t *testing.T) {
-		actual := NewDictionaryItem("test", make([]dictionaryapi.WordResponse, 0))
+		actual := NewDictionaryItem("test", make([]dictionaryapi.WordResponse, 0), nil)
 		expected := DictionaryItem{Word: "test"}
 		assert.Equal(t, expected, actual)
 	})
