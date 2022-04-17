@@ -2,6 +2,7 @@ package db
 
 import (
 	"tg-dictionary/app/clients/dictionaryapi"
+	"tg-dictionary/app/clients/mymemory"
 	"time"
 )
 
@@ -30,7 +31,8 @@ type DictionaryItem struct {
 		Text  string
 		Audio string
 	}
-	Meanings []meaning
+	Meanings     []meaning
+	Translations []tranlation
 }
 
 type meaning struct {
@@ -41,10 +43,20 @@ type meaning struct {
 	Antonyms     []string
 }
 
-func NewDictionaryItem(word string, response []dictionaryapi.WordResponse) DictionaryItem {
+type tranlation struct {
+	Text     string
+	Audio    string
+	Language string
+}
+
+func NewDictionaryItem(
+	word string,
+	dictionaryResponse []dictionaryapi.WordResponse,
+	translationsResponse *mymemory.TranslationResponse,
+) DictionaryItem {
 	item := DictionaryItem{Word: word}
 	var phoneticsText, phoneticAudio string
-	for _, ri := range response {
+	for _, ri := range dictionaryResponse {
 		if phoneticsText == "" || phoneticAudio == "" {
 			if word != ri.Word {
 				continue
@@ -78,6 +90,16 @@ func NewDictionaryItem(word string, response []dictionaryapi.WordResponse) Dicti
 		}
 		item.Phonetics.Text = phoneticsText
 		item.Phonetics.Audio = phoneticAudio
+	}
+	if translationsResponse != nil {
+		var language string
+		if len(translationsResponse.Matches) != 0 {
+			language = translationsResponse.Matches[0].Target
+		}
+		item.Translations = append(
+			item.Translations,
+			tranlation{Text: translationsResponse.Result.Text, Language: language},
+		)
 	}
 	return item
 }

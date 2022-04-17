@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"html/template"
 	"strings"
 	"tg-dictionary/app/clients/dictionaryapi"
+	"tg-dictionary/app/clients/mymemory"
 	"tg-dictionary/app/db"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -36,32 +36,52 @@ func addToDictHandler(ctx context.Context, b *TelegramBot, u tgbotapi.Update) {
 		return
 	}
 	var item db.DictionaryItem
-	if dbItem == nil {
-		client := dictionaryapi.NewDictionaryAPIClient(nil)
-		dictionary, err := client.Get(word)
-		if err != nil {
-			if errors.Is(err, dictionaryapi.ErrNotFound) {
+	if dbItem != nil {
+		item = *dbItem
+	} else {
+		dictOut, dictErrChan := make(chan []dictionaryapi.WordResponse), make(chan error)
+		translationOut, translationErrChar := make(chan mymemory.TranslationResponse), make(chan error)
+		go func() {
+			client := dictionaryapi.NewDictionaryAPIClient(ctx)
+			dictionary, err := client.Get(word)
+			dictOut <- dictionary
+			dictErrChan <- err
+		}()
+		go func() {
+			client := mymemory.NewMymemoryClient(ctx, nil)
+			translation, err := client.Translate(word, "en", "ru")
+			translationOut <- translation
+			translationErrChar <- err
+		}()
+		tranlation, tranlationErr := <-translationOut, <-translationErrChar
+		dictionary, dictErr := <-dictOut, <-dictErrChan
+		if dictErr != nil {
+			if errors.Is(dictErr, dictionaryapi.ErrNotFound) {
 				if _, err := b.api.Send(
 					tgbotapi.NewMessage(u.Message.From.ID, "Unknown word"),
 				); err != nil {
 					log.Error().Err(err).Msg("failed to send new word reply")
 				}
-
+				return
 			}
 			log.Error().Err(err).Str("word", word).Msg("failed to get dictionary info")
 			return
 		}
-		item = db.NewDictionaryItem(word, dictionary)
+		tranlationPtr := &tranlation
+		if tranlationErr != nil {
+			if !errors.Is(tranlationErr, mymemory.ErrUnknown) {
+				log.Error().Err(err).Str("word", word).Msg("failed to get translation info")
+			}
+			tranlationPtr = nil
+		}
+		item = db.NewDictionaryItem(word, dictionary, tranlationPtr)
 		if err := b.db.Save(item); err != nil {
 			log.Error().Err(err).Msg("failed to save dictionary item")
 			return
 		}
-	} else {
-		item = *dbItem
 	}
 	userID := db.UserID(u.Message.From.ID)
 	b.db.SaveForUser(item, userID)
-	fmt.Printf("%+v\n", item)
 
 	tmpl, err := template.New("template").Parse(DictionaryItemTemplate)
 	if err != nil {
