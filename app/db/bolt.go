@@ -30,7 +30,7 @@ func (b *BoltStorage) Get(word string) (*DictionaryItem, error) {
 			return nil
 		}
 		if err := json.Unmarshal(jdata, &res); err != nil {
-			return fmt.Errorf("failed to unmarshal dictionary item: %w", err)
+			return fmt.Errorf("unmarshal dictionary item: %w", err)
 		}
 		return nil
 	}); err != nil {
@@ -45,10 +45,10 @@ func (b *BoltStorage) Save(item DictionaryItem) error {
 		bucket := tx.Bucket([]byte(bucketDictionary))
 		jdata, err := json.Marshal(item)
 		if err != nil {
-			return fmt.Errorf("failed to marshal event: %w", err)
+			return fmt.Errorf("marshal event: %w", err)
 		}
 		if err := bucket.Put([]byte(item.Word), jdata); err != nil {
-			return fmt.Errorf("failed to put event: %w", err)
+			return fmt.Errorf("put event: %w", err)
 		}
 		return nil
 	})

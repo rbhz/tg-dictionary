@@ -1,4 +1,4 @@
-package mymemory
+package ya_dictionary
 
 import (
 	"bytes"
@@ -11,49 +11,47 @@ import (
 )
 
 const exampleResponse = `{
-	"responseData": {
-	  "translatedText": "Здравствуйте",
-	  "match": 1
-	},
-	"quotaFinished": false,
-	"mtLangSupported": null,
-	"responseDetails": "",
-	"responseStatus": 200,
-	"responderId": "228",
-	"exception_code": null,
-	"matches": [
-	  {
-		"id": "589140219",
-		"segment": "Hello",
-		"translation": "Здравствуйте",
-		"source": "en-GB",
-		"target": "ru-RU",
-		"quality": "74",
-		"reference": null,
-		"usage-count": 2,
-		"subject": "All",
-		"created-by": "MateCat",
-		"last-updated-by": "MateCat",
-		"create-date": "2021-11-05 13:50:59",
-		"last-update-date": "2021-11-05 13:50:59",
-		"match": 1
-	  },
-	  {
-		"id": "596601254",
-		"segment": "Hello",
-		"translation": "Привет",
-		"source": "en-GB",
-		"target": "ru-RU",
-		"quality": "74",
-		"reference": null,
-		"usage-count": 2,
-		"subject": "All",
-		"created-by": "MateCat",
-		"last-updated-by": "MateCat",
-		"create-date": "2022-01-27 17:07:12",
-		"last-update-date": "2022-01-27 17:07:12",
-		"match": 0.99
-	  }
+	"head": {},
+	"def": [
+		{
+			"text": "time",
+			"pos": "noun",
+			"tr": [
+				{
+					"text": "время",
+					"pos": "существительное",
+					"syn": [
+						{"text": "раз"},
+						{"text": "тайм"}
+					],
+					"mean": [
+						{"text": "timing"},
+						{"text": "fold"},
+						{"text": "half"}
+					],
+					"ex": [
+						{
+							"text": "prehistoric time",
+							"tr": [
+								{"text": "доисторическое время"}
+							]
+						},
+						{
+							"text": "hundredth time",
+							"tr": [
+								{"text": "сотый раз"}
+							]
+						},
+						{
+							"text": "time-slot",
+							"tr": [
+								{"text": "тайм-слот"}
+							]
+						}
+					]
+				}
+			]
+		}
 	]
 }`
 
@@ -68,8 +66,9 @@ func ptrStr(s string) *string {
 }
 
 func TestTranslate(t *testing.T) {
-	validUrl := "https://api.mymemory.translated.net/get?langpair=en%7Cru&q=hello"
-	word := "hello"
+	validUrl := "https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=test&lang=en-ru&text=time"
+	APItoken := "test"
+	word := "time"
 	t.Run("success", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
@@ -81,43 +80,52 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := MyMemoryClient{client: httpClient, context: context.TODO()}
+		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 
 		assert.NoError(t, err)
 		expected := TranslationResponse{
-			Result: TranslationResult{Text: "Здравствуйте", Match: 1},
-			Matches: []TranslationMatch{
+			Definitions: []Definition{
 				{
-					ID:          "589140219",
-					Segment:     "Hello",
-					Translation: "Здравствуйте",
-					Source:      "en-GB",
-					Target:      "ru-RU",
-					Quality:     "74",
-					Reference:   nil,
-					UsageCount:  2,
-					Subject:     "All",
-					Match:       1,
-				},
-				{
-					ID:          "596601254",
-					Segment:     "Hello",
-					Translation: "Привет",
-					Source:      "en-GB",
-					Target:      "ru-RU",
-					Quality:     "74",
-					Reference:   nil,
-					UsageCount:  2,
-					Subject:     "All",
-					Match:       0.99,
+					Text:         "time",
+					PartOfSpeech: "noun",
+					Translations: []Translation{
+						{
+							Text:         "время",
+							PartOfSpeech: "существительное",
+							Examples: []Example{
+								{
+									Text: "prehistoric time",
+									Translations: []textItem{
+										{Text: "доисторическое время"},
+									},
+								},
+								{
+									Text: "hundredth time",
+									Translations: []textItem{
+										{Text: "сотый раз"},
+									},
+								},
+								{
+									Text: "time-slot",
+									Translations: []textItem{
+										{Text: "тайм-слот"},
+									},
+								},
+							},
+							Synonyms: []textItem{
+								{Text: "раз"},
+								{Text: "тайм"},
+							},
+							Meanings: []textItem{
+								{Text: "timing"},
+								{Text: "fold"},
+								{Text: "half"},
+							},
+						},
+					},
 				},
 			},
-			QuotaFinished:   false,
-			ResponseDetails: "",
-			ResponseStatus:  200,
-			ResponderID:     "228",
-			ExceptionCode:   nil,
 		}
 		assert.Equal(t, expected, tranlation)
 	})
@@ -128,7 +136,7 @@ func TestTranslate(t *testing.T) {
 				return &http.Response{}, http.ErrServerClosed
 			}),
 		}
-		client := MyMemoryClient{client: httpClient, context: context.TODO()}
+		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.ErrorIs(t, err, http.ErrServerClosed)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -144,7 +152,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := MyMemoryClient{client: httpClient, context: context.TODO()}
+		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.Error(t, err)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -160,7 +168,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := MyMemoryClient{client: httpClient, context: context.TODO()}
+		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.Error(t, err)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -172,13 +180,13 @@ func TestTranslate(t *testing.T) {
 				return &http.Response{
 					StatusCode: 200,
 					Body: ioutil.NopCloser(
-						bytes.NewBufferString(`{"responseData": {"translatedText": "Hello", "match": 1}}`),
+						bytes.NewBufferString(`{"head":{},"def":[]}`),
 					),
 					Header: make(http.Header),
 				}, nil
 			}),
 		}
-		client := MyMemoryClient{client: httpClient, context: context.TODO()}
+		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		_, err := client.Translate(word, "en", "ru")
 		assert.ErrorIs(t, err, ErrUnknown)
 

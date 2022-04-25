@@ -2,7 +2,7 @@ package db
 
 import (
 	"tg-dictionary/app/clients/dictionaryapi"
-	"tg-dictionary/app/clients/mymemory"
+	"tg-dictionary/app/clients/ya_dictionary"
 	"time"
 )
 
@@ -32,7 +32,7 @@ type DictionaryItem struct {
 		Audio string
 	}
 	Meanings     []meaning
-	Translations []tranlation
+	Translations []translation
 }
 
 type meaning struct {
@@ -43,16 +43,17 @@ type meaning struct {
 	Antonyms     []string
 }
 
-type tranlation struct {
-	Text     string
-	Audio    string
-	Language string
+type translation struct {
+	Text         string
+	Audio        string
+	Language     string
+	PartOfSpeech string
 }
 
 func NewDictionaryItem(
 	word string,
 	dictionaryResponse []dictionaryapi.WordResponse,
-	translationsResponse *mymemory.TranslationResponse,
+	translations map[string]ya_dictionary.TranslationResponse,
 ) DictionaryItem {
 	item := DictionaryItem{Word: word}
 	var phoneticsText, phoneticAudio string
@@ -91,15 +92,19 @@ func NewDictionaryItem(
 		item.Phonetics.Text = phoneticsText
 		item.Phonetics.Audio = phoneticAudio
 	}
-	if translationsResponse != nil {
-		var language string
-		if len(translationsResponse.Matches) != 0 {
-			language = translationsResponse.Matches[0].Target
+
+	if translations != nil {
+		for lang, tranlationResponse := range translations {
+			for _, d := range tranlationResponse.Definitions {
+				for _, t := range d.Translations {
+					item.Translations = append(item.Translations, translation{
+						Text:         t.Text,
+						Language:     lang,
+						PartOfSpeech: d.PartOfSpeech,
+					})
+				}
+			}
 		}
-		item.Translations = append(
-			item.Translations,
-			tranlation{Text: translationsResponse.Result.Text, Language: language},
-		)
 	}
 	return item
 }
