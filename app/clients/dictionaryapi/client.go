@@ -25,19 +25,19 @@ func (c *DictionaryAPIClient) Get(word string) (items []WordResponse, err error)
 		http.MethodGet, "https://api.dictionaryapi.dev/api/v2/entries/en/"+word, nil,
 	)
 	if err != nil {
-		return items, fmt.Errorf("failed to create request: %w", err)
+		return items, fmt.Errorf("create request: %w", err)
 	}
 	if c.context != nil {
 		req = req.WithContext(c.context)
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return items, fmt.Errorf("failed to fetch dictionaryapi.dev: %w", err)
+		return items, fmt.Errorf("fetch dictionaryapi.dev: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return items, fmt.Errorf("failed to read response body: %w", err)
+		return items, fmt.Errorf("read response body: %w", err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -51,7 +51,7 @@ func (c *DictionaryAPIClient) Get(word string) (items []WordResponse, err error)
 		return items, fmt.Errorf("unsuccessfull API response %v", resp.StatusCode)
 	}
 	if err := json.Unmarshal(body, &items); err != nil {
-		return items, fmt.Errorf("failed to unmarshal response: %w", err)
+		return items, fmt.Errorf("unmarshal response: %w", err)
 	}
 	return items, nil
 }

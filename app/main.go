@@ -11,8 +11,9 @@ import (
 )
 
 type Opts struct {
-	BotToken string `long:"bot-token" env:"BOT_TOKEN" required:"true" description:"Telegram bot token"`
-	BoltDB   string `long:"boltdb" env:"BOLTDB" default:"./dict.data" description:"Path to BoltDB"`
+	BotToken              string `long:"bot-token" env:"BOT_TOKEN" required:"true" description:"Telegram bot token"`
+	BoltDB                string `long:"boltdb" env:"BOLTDB" default:"./dict.data" description:"Path to BoltDB"`
+	YandexDictionaryToken string `long:"yadict-token" env:"YANDEX_DICTIONARY_TOKEN" required:"true" description:"Yandex Dictionary token"`
 }
 
 func main() {
@@ -33,7 +34,10 @@ func main() {
 	}
 
 	// initialize Telegram bot
-	b, err := bot.NewTelegramBot(opts.BotToken, storage)
+	b, err := bot.NewTelegramBot(opts.BotToken, storage, []bot.Handler{
+		bot.StartHandler{},
+		bot.NewWordHandler(opts.YandexDictionaryToken),
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialize telegram bot")
 	}

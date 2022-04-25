@@ -3,7 +3,7 @@ package db
 import (
 	"testing"
 	"tg-dictionary/app/clients/dictionaryapi"
-	"tg-dictionary/app/clients/mymemory"
+	"tg-dictionary/app/clients/ya_dictionary"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,14 +71,16 @@ func TestNewDictionaryItem(t *testing.T) {
 		}
 	}
 
-	getTranlationsResponse := func() mymemory.TranslationResponse {
-		return mymemory.TranslationResponse{
-			Result: mymemory.TranslationResult{
-				Text: "Test",
-			},
-			Matches: []mymemory.TranslationMatch{
-				{Target: "ru-RU"},
-				{Target: "en-US"},
+	getTranlationsResponse := func() ya_dictionary.TranslationResponse {
+		return ya_dictionary.TranslationResponse{
+			Definitions: []ya_dictionary.Definition{
+				{
+					Text:         "Test",
+					PartOfSpeech: "pos1",
+					Translations: []ya_dictionary.Translation{
+						{Text: "тест", PartOfSpeech: "существительное"},
+					},
+				},
 			},
 		}
 	}
@@ -109,8 +111,8 @@ func TestNewDictionaryItem(t *testing.T) {
 					Antonyms:     []string{},
 				},
 			},
-			Translations: []tranlation{
-				{Text: "Test", Language: "ru-RU"},
+			Translations: []translation{
+				{Text: "тест", Language: "ru", PartOfSpeech: "pos1"},
 			},
 		}
 		expected.Phonetics.Text = "phon_in1"
@@ -119,8 +121,11 @@ func TestNewDictionaryItem(t *testing.T) {
 	}
 
 	t.Run("full", func(t *testing.T) {
-		tranlationResponse := getTranlationsResponse()
-		actual := NewDictionaryItem("test", getDictionaryResponse(), &tranlationResponse)
+		actual := NewDictionaryItem(
+			"test",
+			getDictionaryResponse(),
+			map[string]ya_dictionary.TranslationResponse{"ru": getTranlationsResponse()},
+		)
 		assert.Equal(t, getExpected(), actual)
 	})
 
@@ -130,8 +135,10 @@ func TestNewDictionaryItem(t *testing.T) {
 		expected := getExpected()
 		expected.Phonetics.Text = "phon_in2"
 		expected.Phonetics.Audio = "phon_audio2"
-		tranlationResponse := getTranlationsResponse()
-		actual := NewDictionaryItem("test", response, &tranlationResponse)
+		actual := NewDictionaryItem(
+			"test", response,
+			map[string]ya_dictionary.TranslationResponse{"ru": getTranlationsResponse()},
+		)
 		assert.Equal(t, expected, actual)
 	})
 	t.Run("empty", func(t *testing.T) {
