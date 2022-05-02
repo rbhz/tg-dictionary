@@ -100,7 +100,7 @@ func TestNewBoltStorage(t *testing.T) {
 	})
 }
 
-func TestGet(t *testing.T) {
+func TestBoltGet(t *testing.T) {
 	word := "test"
 	t.Run("ok", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
@@ -117,14 +117,13 @@ func TestGet(t *testing.T) {
 		item, err := storage.Get(word)
 		require.NoError(t, err)
 		require.NotNil(t, item)
-		assert.Equal(t, savedItem, *item)
+		assert.Equal(t, savedItem, item)
 	})
 	t.Run("non existing", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
 		defer cleanup()
-		item, err := storage.Get(word)
-		require.NoError(t, err)
-		assert.Nil(t, item)
+		_, err := storage.Get(word)
+		assert.ErrorIs(t, err, ErrNotFound)
 	})
 	t.Run("invalid json", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
@@ -135,13 +134,12 @@ func TestGet(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		item, err := storage.Get(word)
+		_, err = storage.Get(word)
 		assert.Error(t, err)
-		assert.Nil(t, item)
 	})
 }
 
-func TestSave(t *testing.T) {
+func TestBoltSave(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
 		defer cleanup()
@@ -158,53 +156,244 @@ func TestSave(t *testing.T) {
 	})
 }
 
-func TestSaveForUser(t *testing.T) {
-	user := UserID(1)
-	t.Run("new", func(t *testing.T) {
+func TestBoltGetUserItem(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
 		defer cleanup()
-		item := getItem()
-		err := storage.SaveForUser(item, user)
-		require.NoError(t, err)
-		var ui UserDictionaryItem
-		storage.db.View(func(tx *bolt.Tx) error {
-			jdata := tx.Bucket([]byte(bucketUsersDictionaries)).Bucket([]byte("1")).Get([]byte(item.Word))
-			jerr := json.Unmarshal(jdata, &ui)
+		userID := UserID(1)
+		item := UserDictionaryItem{
+			Word: "test",
+			User: userID,
+		}
+		err := storage.db.Update(func(tx *bolt.Tx) error {
+			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
+			bucket, err := allBucket.CreateBucket([]byte("1"))
+			if err != nil {
+				return err
+			}
+			jdata, jerr := json.Marshal(item)
 			require.NoError(t, jerr)
-			assert.Equal(t, ui.Word, item.Word)
-			assert.Equal(t, ui.User, user)
-			assert.Less(t, ui.Created, time.Now())
-			assert.Greater(t, ui.Created, time.Now().Add(-1*time.Minute))
+			return bucket.Put([]byte(item.Word), jdata)
+		})
+		require.NoError(t, err)
+
+		userItem, err := storage.GetUserItem(userID, item.Word)
+		require.NoError(t, err)
+		require.NotNil(t, userItem)
+		assert.Equal(t, item, userItem)
+	})
+	t.Run("non existing", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		_, err := storage.GetUserItem(UserID(1), "test")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existing with sub bucket", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		err := storage.db.Update(func(tx *bolt.Tx) error {
+			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
+			_, err := allBucket.CreateBucket([]byte("1"))
+			return err
+		})
+		require.NoError(t, err)
+
+		_, err = storage.GetUserItem(UserID(1), "test")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("invalid json", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		err := storage.db.Update(func(tx *bolt.Tx) error {
+			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
+			bucket, err := allBucket.CreateBucket([]byte("1"))
+			if err != nil {
+				return err
+			}
+			return bucket.Put([]byte("test"), []byte("NON_JSON_DATA"))
+		})
+		require.NoError(t, err)
+
+		_, err = storage.GetUserItem(UserID(1), "test")
+		assert.Error(t, err)
+	})
+}
+func TestBoltSaveUserItem(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		userID := UserID(1)
+		item := UserDictionaryItem{
+			Word: "test",
+			User: userID,
+		}
+		err := storage.SaveUserItem(item)
+		assert.NoError(t, err)
+		storage.db.View(func(tx *bolt.Tx) error {
+			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
+			bucket := allBucket.Bucket([]byte("1"))
+			require.NotNil(t, bucket)
+			jdata, jerr := json.Marshal(item)
+			require.NoError(t, jerr)
+			assert.Equal(t, jdata, bucket.Get([]byte(item.Word)))
 			return nil
 		})
 	})
-
-	t.Run("new", func(t *testing.T) {
+	t.Run("rewrite", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
 		defer cleanup()
-		item := getItem()
-		existing := UserDictionaryItem{Word: item.Word, User: user, Created: time.Now().Truncate(time.Nanosecond)}
-		existingJSON, jerr := json.Marshal(existing)
-		require.NoError(t, jerr)
-		storage.db.Update(func(tx *bolt.Tx) error {
-			usrBucket, err := tx.Bucket([]byte(bucketUsersDictionaries)).CreateBucket([]byte("1"))
-			require.NoError(t, err)
-			usrBucket.Put([]byte(item.Word), existingJSON)
-			require.NoError(t, err)
-			return nil
-		})
-		err := storage.SaveForUser(item, user)
-		require.NoError(t, err)
-		var ui UserDictionaryItem
+		userID := UserID(1)
+		item := UserDictionaryItem{
+			Word: "test",
+			User: userID,
+		}
+		require.NoError(t, storage.SaveUserItem(item))
+		lastQuiz := time.Now().Truncate(time.Nanosecond)
+		item.LastQuiz = &lastQuiz
+		assert.NoError(t, storage.SaveUserItem(item))
 		storage.db.View(func(tx *bolt.Tx) error {
-			jdata := tx.Bucket([]byte(bucketUsersDictionaries)).Bucket([]byte("1")).Get([]byte(item.Word))
-			jerr := json.Unmarshal(jdata, &ui)
+			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
+			bucket := allBucket.Bucket([]byte("1"))
+			require.NotNil(t, bucket)
+			jdata, jerr := json.Marshal(item)
 			require.NoError(t, jerr)
-			assert.Equal(t, existing.Word, ui.Word)
-			assert.Equal(t, existing.User, ui.User)
-			assert.Equal(t, existing.Created, ui.Created)
+			assert.Equal(t, jdata, bucket.Get([]byte(item.Word)))
 			return nil
 		})
 	})
+}
 
+func TestBoltGetUserDictionary(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		item1 := DictionaryItem{Word: "test"}
+		userItem1 := UserDictionaryItem{Word: item1.Word, User: UserID(1)}
+		require.NoError(t, storage.Save(item1))
+		require.NoError(t, storage.SaveUserItem(userItem1))
+
+		item2 := DictionaryItem{Word: "test2"}
+		userItem2 := UserDictionaryItem{Word: item2.Word, User: UserID(1)}
+		require.NoError(t, storage.Save(item2))
+		require.NoError(t, storage.SaveUserItem(userItem2))
+
+		item3 := DictionaryItem{Word: "test3"} // other user
+		userItem3 := UserDictionaryItem{Word: item3.Word, User: UserID(2)}
+		require.NoError(t, storage.Save(item3))
+		require.NoError(t, storage.SaveUserItem(userItem3))
+
+		res, err := storage.GetUserDictionary(UserID(1))
+		assert.NoError(t, err)
+		assert.Equal(t, map[UserDictionaryItem]DictionaryItem{userItem1: item1, userItem2: item2}, res)
+	})
+	t.Run("empty", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		expected := make(map[UserDictionaryItem]DictionaryItem)
+		actual, err := storage.GetUserDictionary(UserID(1))
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+
+	})
+}
+func TestBoltSaveQuiz(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		quiz := Quiz{
+			ID:       "1",
+			User:     UserID(1),
+			Word:     "test",
+			Language: "ru",
+			Choices: []QuizItem{
+				{
+					Word:         "t1",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "t2",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "test",
+					Translations: []string{"t1", "t2"},
+					Correct:      true,
+				},
+			},
+		}
+		err := storage.SaveQuiz(quiz)
+		assert.NoError(t, err)
+		storage.db.View(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(bucketQuizzes))
+			jdata, jerr := json.Marshal(quiz)
+			require.NoError(t, jerr)
+			assert.Equal(t, jdata, bucket.Get([]byte(quiz.ID)))
+			return nil
+		})
+	})
+}
+func TestBoltGetQuiz(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		quiz := Quiz{
+			ID:       "1",
+			User:     UserID(1),
+			Word:     "test",
+			Language: "ru",
+			Choices: []QuizItem{
+				{
+					Word:         "t1",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "t2",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "test",
+					Translations: []string{"t1", "t2"},
+					Correct:      true,
+				},
+			},
+		}
+		err := storage.db.Update(func(tx *bolt.Tx) error {
+			bucket := tx.Bucket([]byte(bucketQuizzes))
+			jdata, jerr := json.Marshal(quiz)
+			require.NoError(t, jerr)
+			return bucket.Put([]byte(quiz.ID), jdata)
+		})
+		require.NoError(t, err)
+		assert.NoError(t, err)
+
+		dbQuiz, err := storage.GetQuiz(quiz.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, quiz, dbQuiz)
+	})
+	t.Run("not found", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		_, err := storage.GetQuiz("1")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("invalid JSON", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		err := storage.db.Update(func(tx *bolt.Tx) error {
+			allBucket := tx.Bucket([]byte(bucketQuizzes))
+			bucket, err := allBucket.CreateBucket([]byte("1"))
+			if err != nil {
+				return err
+			}
+			return bucket.Put([]byte("test"), []byte("NON_JSON_DATA"))
+		})
+		require.NoError(t, err)
+
+		_, err = storage.GetQuiz("1")
+		assert.Error(t, err)
+	})
 }

@@ -9,6 +9,7 @@ import (
 	"tg-dictionary/app/clients/dictionaryapi"
 	"tg-dictionary/app/clients/ya_dictionary"
 	"tg-dictionary/app/db"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
@@ -27,7 +28,7 @@ const dictionaryItemTemplate = `<b>{{ .Item.Word }}</b>
 ___
 {{- end }}
 <b>Meanings:</b>
-{{- range $m := .Item.Meanings }}
+{{- range  $m := .Item.Meanings }}
 <code>{{ $m.Definition }}</code> ({{ $m.PartOfSpeech }})
 {{- range $e := $m.Examples }}
 {{ $e }}
@@ -36,6 +37,19 @@ ___
 {{- end }}
 <u>Phonetics</u>: {{ .Item.Phonetics.Text }}
 `
+
+func GetItemMessageText(item db.DictionaryItem) string {
+	tmpl, err := template.New("template").Parse(dictionaryItemTemplate)
+	if err != nil {
+		log.Error().Err(err).Str("word", item.Word).Msg("failed to parse item template")
+		return ""
+	}
+	buf := &bytes.Buffer{}
+	if err := tmpl.Execute(buf, map[string]interface{}{"Item": item}); err != nil {
+		log.Error().Err(err).Str("word", item.Word).Msg("failed to format item template")
+	}
+	return buf.String()
+}
 
 type WordHandler struct {
 	tranlationsToken string
@@ -46,7 +60,7 @@ func (h WordHandler) Passthrough(u tgbotapi.Update) bool {
 }
 
 func (h WordHandler) Match(u tgbotapi.Update) bool {
-	return u.Message != nil && u.Message.Text != ""
+	return u.Message != nil && u.Message.Text != "" && !u.Message.IsCommand()
 }
 
 func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
@@ -66,9 +80,15 @@ func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 		return
 	}
 
-	b.DB().SaveForUser(*item, userID)
+	if _, err := b.DB().GetUserItem(userID, item.Word); err != nil && errors.Is(err, db.ErrNotFound) {
+		b.DB().SaveUserItem(db.UserDictionaryItem{
+			User:    userID,
+			Word:    item.Word,
+			Created: time.Now(),
+		})
+	}
 
-	text := tgbotapi.NewMessage(u.Message.From.ID, h.getItemText(*item))
+	text := tgbotapi.NewMessage(u.Message.From.ID, GetItemMessageText(*item))
 	text.ParseMode = "html"
 	if _, err := b.Send(text); err == nil && item.Phonetics.Audio != "" {
 		audio := tgbotapi.NewAudio(u.Message.From.ID, tgbotapi.FileURL(item.Phonetics.Audio))
@@ -76,28 +96,15 @@ func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	}
 }
 
-func (h WordHandler) getItemText(item db.DictionaryItem) string {
-	tmpl, err := template.New("template").Parse(dictionaryItemTemplate)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to parse item template")
-		return ""
-	}
-	buf := &bytes.Buffer{}
-	if err := tmpl.Execute(buf, map[string]interface{}{"Item": item}); err != nil {
-		log.Error().Err(err).Msg("failed to format item template")
-	}
-	return buf.String()
-}
-
 func (h WordHandler) getItemData(ctx context.Context, word string, storage db.Storage) (*db.DictionaryItem, error) {
 	dbItem, err := storage.Get(word)
-	if err != nil {
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
 		return nil, fmt.Errorf("fetch from db: %w", err)
 	}
 
 	var item db.DictionaryItem
-	if dbItem != nil {
-		return dbItem, nil
+	if err == nil {
+		return &dbItem, nil
 	} else {
 		dictOut, dictErrChan := make(chan []dictionaryapi.WordResponse), make(chan error)
 		translationOut, translationErrChar := make(chan ya_dictionary.TranslationResponse), make(chan error)
