@@ -1,27 +1,42 @@
 package db
 
 import (
+	"encoding/base64"
+	"errors"
 	"tg-dictionary/app/clients/dictionaryapi"
 	"tg-dictionary/app/clients/ya_dictionary"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type UserID int64
 
+var ErrNotFound error = errors.New("not found")
+
+func GenerateID() string {
+	id := [16]byte(uuid.New())
+	return base64.RawURLEncoding.EncodeToString(id[:])
+}
+
 // Storage defines method provided by database interfaces
 type Storage interface {
 	// Get dictionary item by word, nil if does not exists
-	Get(string) (*DictionaryItem, error)
+	Get(string) (DictionaryItem, error)
 	// Save dictionary item to DB
 	Save(DictionaryItem) error
-	// SaveForUser dictionary item to user dictionary
-	SaveForUser(DictionaryItem, UserID) error
-}
 
-type UserDictionaryItem struct {
-	Word    string
-	User    UserID
-	Created time.Time
+	// GetUserDictionary returns item from user dictionary
+	GetUserItem(UserID, string) (UserDictionaryItem, error)
+	// SaveUserItem saves UserDictionaryItem
+	SaveUserItem(UserDictionaryItem) error
+	// GetUserDictionary returns map of user dictionary items
+	GetUserDictionary(UserID) (map[UserDictionaryItem]DictionaryItem, error)
+	// // SaveQuiz saves quiz to DB
+
+	SaveQuiz(Quiz) error
+	// GetQuiz returns quiz by ID
+	GetQuiz(string) (Quiz, error)
 }
 
 // DictionaryItem hold data for a single dictionary item
@@ -107,4 +122,72 @@ func NewDictionaryItem(
 		}
 	}
 	return item
+}
+
+// UserDictionaryItem hold data for a single user dictionary item
+type UserDictionaryItem struct {
+	Word     string
+	User     UserID
+	Created  time.Time
+	LastQuiz *time.Time
+}
+
+// QuizResult holds data for a quiz result
+type QuizResult struct {
+	Choice  int
+	Correct bool
+}
+
+// QuizItem holds data for a single quiz item
+type QuizItem struct {
+	Word         string
+	Translations []string
+	Correct      bool
+}
+
+// Quiz holds data for a single quiz`
+type Quiz struct {
+	ID       string
+	User     UserID
+	Word     string
+	Language string
+	Choices  []QuizItem
+	Created  time.Time
+	Result   *QuizResult
+}
+
+func (q *Quiz) SetResult(choice int, s Storage) error {
+	if choice < 0 || choice >= len(q.Choices) {
+		return errors.New("invalid choice")
+	}
+	if q.Result != nil {
+		return errors.New("result already set")
+	}
+
+	q.Result = &QuizResult{
+		Choice:  choice,
+		Correct: q.Choices[choice].Correct,
+	}
+	if q.Result.Correct {
+		item, err := s.GetUserItem(q.User, q.Word)
+		if err != nil {
+			return err
+		}
+		now := time.Now()
+		item.LastQuiz = &now
+		s.SaveUserItem(item)
+	}
+	s.SaveQuiz(*q)
+	return nil
+}
+
+func NewQuiz(user UserID, word string, lang string, items []QuizItem) Quiz {
+	return Quiz{
+		ID:       GenerateID(),
+		User:     user,
+		Word:     word,
+		Language: lang,
+		Choices:  items,
+		Created:  time.Now(),
+	}
 }

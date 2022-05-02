@@ -4,8 +4,10 @@ import (
 	"testing"
 	"tg-dictionary/app/clients/dictionaryapi"
 	"tg-dictionary/app/clients/ya_dictionary"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func ptrStr(s string) *string {
@@ -145,5 +147,125 @@ func TestNewDictionaryItem(t *testing.T) {
 		actual := NewDictionaryItem("test", make([]dictionaryapi.WordResponse, 0), nil)
 		expected := DictionaryItem{Word: "test"}
 		assert.Equal(t, expected, actual)
+	})
+}
+
+func TestNewQuiz(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		expected := Quiz{
+			User:     UserID(1),
+			Word:     "test",
+			Language: "ru",
+			Choices: []QuizItem{
+				{
+					Word:         "t1",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "t2",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "test",
+					Translations: []string{"t1", "t2"},
+					Correct:      true,
+				},
+			},
+		}
+		actual := NewQuiz(UserID(1), expected.Word, expected.Language, expected.Choices)
+		assert.NotEmpty(t, actual.ID)
+		assert.NotEmpty(t, actual.Created)
+		expected.ID = actual.ID
+		expected.Created = actual.Created
+		assert.Equal(t, expected, actual)
+	})
+}
+
+func TestQuizSetResult(t *testing.T) {
+	getQuiz := func() Quiz {
+		return Quiz{
+			ID:       "1",
+			User:     UserID(1),
+			Word:     "test",
+			Language: "ru",
+			Choices: []QuizItem{
+				{
+					Word:         "t1",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "t2",
+					Translations: []string{"t1", "t2"},
+					Correct:      false,
+				},
+				{
+					Word:         "test",
+					Translations: []string{"t1", "t2"},
+					Correct:      true,
+				},
+			},
+		}
+	}
+	t.Run("success correct", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		quiz := getQuiz()
+		require.NoError(t, storage.SaveQuiz(quiz))
+		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
+			Word:    quiz.Word,
+			User:    quiz.User,
+			Created: time.Now()}))
+
+		assert.NoError(t, quiz.SetResult(2, storage))
+		require.NotNil(t, quiz.Result)
+		assert.True(t, quiz.Result.Correct)
+		assert.Equal(t, 2, quiz.Result.Choice)
+
+		dbQuiz, err := storage.GetQuiz(quiz.ID)
+		require.NoError(t, err)
+		assert.Equal(t, quiz, dbQuiz)
+	})
+	t.Run("success wrong", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		quiz := getQuiz()
+		require.NoError(t, storage.SaveQuiz(quiz))
+		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
+			Word:    quiz.Word,
+			User:    quiz.User,
+			Created: time.Now()}))
+
+		assert.NoError(t, quiz.SetResult(1, storage))
+		require.NotNil(t, quiz.Result)
+		assert.False(t, quiz.Result.Correct)
+		assert.Equal(t, 1, quiz.Result.Choice)
+
+		dbQuiz, err := storage.GetQuiz(quiz.ID)
+		require.NoError(t, err)
+		assert.Equal(t, quiz, dbQuiz)
+	})
+	t.Run("invalid choice", func(t *testing.T) {
+		for _, choice := range []int{-1, 3} {
+			storage := NewInMemoryStorage()
+			quiz := getQuiz()
+			require.NoError(t, storage.SaveQuiz(quiz))
+			require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
+				Word:    quiz.Word,
+				User:    quiz.User,
+				Created: time.Now()}))
+			assert.Error(t, quiz.SetResult(choice, storage))
+		}
+	})
+	t.Run("already set", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		quiz := getQuiz()
+		require.NoError(t, storage.SaveQuiz(quiz))
+		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
+			Word:    quiz.Word,
+			User:    quiz.User,
+			Created: time.Now()}))
+		assert.NoError(t, quiz.SetResult(2, storage))
+		assert.Error(t, quiz.SetResult(2, storage))
 	})
 }
