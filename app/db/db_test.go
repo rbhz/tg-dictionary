@@ -2,8 +2,8 @@ package db
 
 import (
 	"testing"
-	"tg-dictionary/app/clients/dictionaryapi"
-	"tg-dictionary/app/clients/ya_dictionary"
+	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
+	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
 	"time"
 
 	"github.com/stretchr/testify/assert"

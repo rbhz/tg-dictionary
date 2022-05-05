@@ -2,7 +2,7 @@ package bot
 
 import (
 	"context"
-	"tg-dictionary/app/db"
+	"github.com/rbhz/tg-dictionary/app/db"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

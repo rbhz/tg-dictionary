@@ -3,8 +3,8 @@ package db
 import (
 	"encoding/base64"
 	"errors"
-	"tg-dictionary/app/clients/dictionaryapi"
-	"tg-dictionary/app/clients/ya_dictionary"
+	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
+	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
 	"time"
 
 	"github.com/google/uuid"
