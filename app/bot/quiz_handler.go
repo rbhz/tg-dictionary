@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-	"tg-dictionary/app/db"
+	"github.com/rbhz/tg-dictionary/app/db"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

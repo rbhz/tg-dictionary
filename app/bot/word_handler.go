@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-	"tg-dictionary/app/clients/dictionaryapi"
-	"tg-dictionary/app/clients/ya_dictionary"
-	"tg-dictionary/app/db"
+	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
+	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
+	"github.com/rbhz/tg-dictionary/app/db"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"

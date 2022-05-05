@@ -2,8 +2,8 @@ package main
 
 import (
 	"os"
-	"tg-dictionary/app/bot"
-	"tg-dictionary/app/db"
+	"github.com/rbhz/tg-dictionary/app/bot"
+	"github.com/rbhz/tg-dictionary/app/db"
 
 	"github.com/jessevdk/go-flags"
 	log "github.com/rs/zerolog/log"

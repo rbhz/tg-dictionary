@@ -1,4 +1,4 @@
-module tg-dictionary
+module github.com/rbhz/tg-dictionary
 
 go 1.18
 
