@@ -36,6 +36,34 @@ func TestInMemorySave(t *testing.T) {
 	})
 }
 
+func TestInMemoryGetUser(t *testing.T) {
+	t.Run("existing", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		user := User{ID: UserID(1), Username: "test", Language: "en"}
+		require.NoError(t, storage.SaveUser(user))
+		res, err := storage.GetUser(UserID(1))
+		assert.NoError(t, err)
+		assert.Equal(t, user, res)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		_, err := storage.GetUser(UserID(1))
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+}
+
+func TestSaveUser(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		user := User{ID: UserID(1), Username: "test", Language: "en"}
+		require.NoError(t, storage.SaveUser(user))
+		res, err := storage.GetUser(UserID(1))
+		assert.NoError(t, err)
+		assert.Equal(t, user, res)
+	})
+}
+
 func TestInMemorySaveUserItem(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		storage := NewInMemoryStorage()

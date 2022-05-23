@@ -2,8 +2,9 @@ package bot
 
 import (
 	"context"
-	"github.com/rbhz/tg-dictionary/app/db"
 	"time"
+
+	"github.com/rbhz/tg-dictionary/app/db"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
@@ -27,8 +28,28 @@ type TelegramBot struct {
 func (b *TelegramBot) processUpdate(u tgbotapi.Update) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
-
-	ctx = context.WithValue(ctx, "test", 1)
+	tgUser := u.SentFrom()
+	if tgUser != nil {
+		var user db.User
+		user, err := b.db.GetUser(db.UserID(tgUser.ID))
+		if err != nil {
+			if errors.Is(err, db.ErrNotFound) {
+				user = db.User{
+					ID:       db.UserID(tgUser.ID),
+					Username: tgUser.UserName,
+					IsAdmin:  false,
+					Language: tgUser.LanguageCode,
+				}
+				if err := b.db.SaveUser(user); err != nil {
+					log.Error().Err(err).Int64("user", tgUser.ID).Msg("failed to save user")
+				}
+			} else {
+				log.Error().Err(err).Int64("user", tgUser.ID).Msg("failed to get user")
+				return
+			}
+		}
+		ctx = context.WithValue(ctx, "user", user)
+	}
 	for _, handler := range b.handlers {
 		if handler.Match(u) {
 			handler.Handle(ctx, b, u)
