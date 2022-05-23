@@ -3,9 +3,10 @@ package db
 import (
 	"encoding/base64"
 	"errors"
+	"time"
+
 	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
 	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -21,10 +22,15 @@ func GenerateID() string {
 
 // Storage defines method provided by database interfaces
 type Storage interface {
-	// Get dictionary item by word, nil if does not exists
+	// Get dictionary item by word
 	Get(string) (DictionaryItem, error)
 	// Save dictionary item to DB
 	Save(DictionaryItem) error
+
+	// GetUser returns user by ID
+	GetUser(UserID) (User, error)
+	// SaveUser saves user to DB
+	SaveUser(User) error
 
 	// GetUserDictionary returns item from user dictionary
 	GetUserItem(UserID, string) (UserDictionaryItem, error)
@@ -37,6 +43,14 @@ type Storage interface {
 	SaveQuiz(Quiz) error
 	// GetQuiz returns quiz by ID
 	GetQuiz(string) (Quiz, error)
+}
+
+// User holds user data
+type User struct {
+	ID       UserID
+	IsAdmin  bool
+	Username string
+	Language string
 }
 
 // DictionaryItem hold data for a single dictionary item
