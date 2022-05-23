@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	bucketUsersDictionaries = "UsersDictionaries"
 	bucketDictionary        = "Dictionary"
+	bucketUsers             = "Users"
+	bucketUsersDictionaries = "UsersDictionaries"
 	bucketQuizzes           = "Quizzes"
 )
 
@@ -55,10 +56,43 @@ func (b *BoltStorage) Save(item DictionaryItem) error {
 		bucket := tx.Bucket([]byte(bucketDictionary))
 		jdata, err := json.Marshal(item)
 		if err != nil {
-			return fmt.Errorf("marshal event: %w", err)
+			return fmt.Errorf("marshal word: %w", err)
 		}
 		if err := bucket.Put([]byte(item.Word), jdata); err != nil {
-			return fmt.Errorf("put event: %w", err)
+			return fmt.Errorf("put word: %w", err)
+		}
+		return nil
+	})
+}
+
+func (b *BoltStorage) GetUser(user UserID) (User, error) {
+	var res User
+	if err := b.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketUsers))
+		jdata := bucket.Get([]byte(strconv.FormatInt(int64(user), 10)))
+		if len(jdata) == 0 {
+			return ErrNotFound
+		}
+		if err := json.Unmarshal(jdata, &res); err != nil {
+			return fmt.Errorf("unmarshal user: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return User{}, err
+	}
+	return res, nil
+}
+
+func (b *BoltStorage) SaveUser(user User) error {
+	return b.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketUsers))
+		jdata, err := json.Marshal(user)
+
+		if err != nil {
+			return fmt.Errorf("marshal user: %w", err)
+		}
+		if err := bucket.Put([]byte(strconv.FormatInt(int64(user.ID), 10)), jdata); err != nil {
+			return fmt.Errorf("put user: %w", err)
 		}
 		return nil
 	})
@@ -169,7 +203,7 @@ func (b *BoltStorage) GetQuiz(id string) (Quiz, error) {
 // NewBoltStorage creates BoltStorage instance and initialize buckets
 func NewBoltStorage(db *bolt.DB) (*BoltStorage, error) {
 	err := db.Update(func(tx *bolt.Tx) error {
-		for _, bucket := range []string{bucketUsersDictionaries, bucketDictionary, bucketQuizzes} {
+		for _, bucket := range []string{bucketUsers, bucketUsersDictionaries, bucketDictionary, bucketQuizzes} {
 			_, err := tx.CreateBucketIfNotExists([]byte(bucket))
 			if err != nil {
 				return err

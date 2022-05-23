@@ -156,6 +156,43 @@ func TestBoltSave(t *testing.T) {
 	})
 }
 
+func TestBoltSaveUser(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		user := User{ID: UserID(1), IsAdmin: true, Username: "test"}
+		err := storage.SaveUser(user)
+		assert.NoError(t, err)
+		jdata, jerr := json.Marshal(user)
+		require.NoError(t, jerr)
+		storage.db.View(func(tx *bolt.Tx) error {
+			userData := tx.Bucket([]byte(bucketUsers)).Get([]byte("1"))
+			assert.Equal(t, jdata, userData)
+			return nil
+		})
+	})
+}
+
+func TestBoltGetUser(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		user := User{ID: UserID(1), IsAdmin: true, Username: "test"}
+		err := storage.SaveUser(user)
+		require.NoError(t, err)
+
+		gotUser, err := storage.GetUser(user.ID)
+		require.NoError(t, err)
+		assert.Equal(t, user, gotUser)
+	})
+	t.Run("not found", func(t *testing.T) {
+		storage, cleanup := getStorage(t)
+		defer cleanup()
+		_, err := storage.GetUser(UserID(1))
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+}
+
 func TestBoltGetUserItem(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
