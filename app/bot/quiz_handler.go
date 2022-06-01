@@ -10,26 +10,26 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-	"github.com/rbhz/tg-dictionary/app/db"
 	"time"
+
+	"github.com/rbhz/tg-dictionary/app/db"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
 )
 
-const quizReplyCallbackID = "qr"
 const quizChoiceLanguage = "ru"
 const quizChoicesCount = 4
 const quizMessageTemplate = `
-<i>Word</i>: <b>{{ .quiz.Word }}</b>
+<i>Word</i>: <b>{{ .quiz.DisplayWord }}</b>
 <i>Choices</i>:
 {{- range $choiceIdx, $choice := .quiz.Choices }}
 
-<b>{{- if $.quiz.Result }}{{- if eq $.quiz.Result.Choice $choiceIdx }}☑️ {{- end }}{{- if $choice.Correct }}✅ {{- end }}{{- end }}{{inc $choiceIdx }}</b>:
-{{- range $i, $w := $choice.Translations }}{{ if $i }},{{- end }} {{ $w }}{{- end }}
+<b>{{- if $.quiz.Result }}{{- if eq $.quiz.Result.Choice $choiceIdx }}☑️ {{- end }}{{- if $choice.Correct }}✅ {{- end }}{{- end }}{{inc $choiceIdx }}</b>: {{ $choice.Text }}
 {{- end }}
 `
 
+// GetQuizMessageText returns text for quiz message
 func GetQuizMessageText(quiz db.Quiz) (string, error) {
 	funcMap := template.FuncMap{
 		"inc": func(i int) int {
@@ -50,6 +50,7 @@ func GetQuizMessageText(quiz db.Quiz) (string, error) {
 
 var ErrNotEnoughWords = errors.New("not enough words")
 
+// QuizHandler handles quiz command
 type QuizHandler struct{}
 
 func (h QuizHandler) Match(u tgbotapi.Update) bool {
@@ -61,6 +62,15 @@ func (h QuizHandler) Passthrough(u tgbotapi.Update) bool {
 }
 
 func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
+	user, ok := ctx.Value(ctxUserKey).(db.User)
+	if !ok {
+		log.Error().Msg("invalid user in context")
+		return
+	}
+	quizType := db.QuizTypeDefault
+	if user.Config.QuizType != nil {
+		quizType = *user.Config.QuizType
+	}
 	dictionary, err := b.DB().GetUserDictionary(db.UserID(u.Message.From.ID))
 	if err != nil {
 		log.Error().Err(err).Int64("user", u.Message.From.ID).Msg("failed to get user dictionary")
@@ -74,14 +84,24 @@ func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 		log.Error().Err(err).Str("word", quizWord.Word).Msg("failed to get random word")
 		return
 	}
-	choices, err := h.getChoices(quizWord, dictionary, quizChoicesCount)
+	choices, err := h.getChoices(quizWord, quizType, dictionary, quizChoicesCount)
 	if err != nil {
 		if errors.Is(err, ErrNotEnoughWords) {
 			b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Add more words to your dictionary"))
 			return
 		}
 	}
-	quiz := db.NewQuiz(db.UserID(u.Message.From.ID), quizWord.Word, quizChoiceLanguage, choices)
+
+	displayWord := quizWord.Word
+	if quizType == db.QuizTypeReverseTranslations {
+		for _, tr := range dictionary[quizWord].Translations {
+			if tr.Language == quizChoiceLanguage {
+				displayWord = tr.Text
+				break
+			}
+		}
+	}
+	quiz := db.NewQuiz(db.UserID(u.Message.From.ID), quizWord.Word, displayWord, quizChoiceLanguage, choices, quizType)
 	if err := b.DB().SaveQuiz(quiz); err != nil {
 		log.Error().Err(err).Int64("user", u.Message.From.ID).Msg("failed to save quiz")
 		return
@@ -169,6 +189,7 @@ func (h QuizHandler) getRandomWord(dict map[db.UserDictionaryItem]db.DictionaryI
 // getChoices returns random words from dictionary with same part of speech
 func (h QuizHandler) getChoices(
 	item db.UserDictionaryItem,
+	qType string,
 	dict map[db.UserDictionaryItem]db.DictionaryItem,
 	count int,
 ) ([]db.QuizItem, error) {
@@ -181,42 +202,57 @@ func (h QuizHandler) getChoices(
 		if word.Word == item.Word {
 			continue
 		}
-		if len(word.Translations) == 0 {
+		// skip unsuitable words
+		if qType == db.QuizTypeTranslations && len(word.Translations) == 0 {
 			continue
 		}
-		translations := make([]string, 0, len(word.Translations))
-		for _, translation := range word.Translations {
-			if translation.Language == quizChoiceLanguage {
-				translations = append(translations, translation.Text)
-			}
+		if qType == db.QuizTypeMeanings && len(word.Meanings) == 0 {
+			continue
 		}
-		if len(translations) > 0 {
-			choices = append(choices, db.QuizItem{Word: word.Word, Translations: translations, Correct: false})
-		}
+
+		choices = append(choices, db.QuizItem{
+			Word:    word.Word,
+			Text:    h.getWordChoiceText(word, qType),
+			Correct: false})
 	}
 	if len(choices) < count {
 		return choices, ErrNotEnoughWords
 	}
 	rand.Shuffle(len(choices), func(i, j int) { choices[i], choices[j] = choices[j], choices[i] })
 	randomChoices := choices[:count-1]
-	correctChoice := db.QuizItem{Word: correctWord.Word, Translations: make([]string, 0, len(correctWord.Translations)), Correct: true}
-	for _, translation := range correctWord.Translations {
-		if translation.Language == quizChoiceLanguage {
-			correctChoice.Translations = append(correctChoice.Translations, translation.Text)
-		}
-	}
+	correctChoice := db.QuizItem{Word: correctWord.Word, Text: h.getWordChoiceText(correctWord, qType), Correct: true}
 	randomChoices = append(randomChoices, correctChoice)
 
 	sort.Slice(randomChoices, func(i, j int) bool { return randomChoices[i].Word < randomChoices[j].Word })
 	return randomChoices, nil
 }
 
+// getWordChoiceText returns choice text based on quiz type
+func (h QuizHandler) getWordChoiceText(word db.DictionaryItem, qType string) (text string) {
+	switch qType {
+	case db.QuizTypeTranslations:
+		translations := make([]string, 0, len(word.Translations))
+		for _, translation := range word.Translations {
+			if translation.Language == quizChoiceLanguage {
+				translations = append(translations, translation.Text)
+			}
+		}
+		text = strings.Join(translations, ", ")
+	case db.QuizTypeReverseTranslations:
+		text = word.Word
+	case db.QuizTypeMeanings:
+		text = word.Meanings[0].Definition
+	}
+	return
+}
+
+// getMessageKeyboard returns keyboard with quiz choices
 func (h QuizHandler) getMessageKeyboard(quiz db.Quiz) tgbotapi.InlineKeyboardMarkup {
 	buttons := make([]tgbotapi.InlineKeyboardButton, 0, len(quiz.Choices))
 	for idx := range quiz.Choices {
 		buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData(
 			fmt.Sprintf("%d", idx+1),
-			fmt.Sprintf("%v|%v|%d", quizReplyCallbackID, quiz.ID, idx)),
+			fmt.Sprintf("%v|%v|%d", callbackIdQuizReply, quiz.ID, idx)),
 		)
 	}
 	return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(buttons...))
@@ -226,7 +262,7 @@ func (h QuizHandler) getMessageKeyboard(quiz db.Quiz) tgbotapi.InlineKeyboardMar
 type QuizReplyHandler struct{}
 
 func (h QuizReplyHandler) Match(u tgbotapi.Update) bool {
-	return u.CallbackQuery != nil && u.CallbackQuery.Data[:3] == fmt.Sprintf("%v|", quizReplyCallbackID)
+	return u.CallbackQuery != nil && u.CallbackQuery.Data[:3] == fmt.Sprintf("%v|", callbackIdQuizReply)
 }
 
 func (h QuizReplyHandler) Passthrough(u tgbotapi.Update) bool {
@@ -244,13 +280,13 @@ func (h QuizReplyHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) 
 		log.Error().Err(err).Str("quiz", quizID).Msg("failed to get quiz")
 	}
 	if quiz.User != db.UserID(u.CallbackQuery.From.ID) {
-		b.Send(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown quiz"))
+		b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown quiz"))
 		return
 	}
 	if err := quiz.SetResult(choice, b.DB()); err != nil {
 		log.Error().Err(err).Str("quiz", quiz.ID).Int("choice", choice).Msg("failed to set quiz result")
 		response := tgbotapi.NewCallback(u.CallbackQuery.ID, "Error happend")
-		b.Send(response)
+		b.SendCallback(response)
 		return
 	}
 	if quiz.Result.Correct {

@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const ctxUserKey = "user"
+
 type Handler interface {
 	Handle(ctx context.Context, b Bot, u tgbotapi.Update)
 	Passthrough(tgbotapi.Update) bool
@@ -48,7 +50,7 @@ func (b *TelegramBot) processUpdate(u tgbotapi.Update) {
 				return
 			}
 		}
-		ctx = context.WithValue(ctx, "user", user)
+		ctx = context.WithValue(ctx, ctxUserKey, user)
 	}
 	for _, handler := range b.handlers {
 		if handler.Match(u) {
@@ -76,6 +78,14 @@ func (b *TelegramBot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 		log.Error().Err(err).Msg("failed to send")
 	}
 	return message, err
+}
+
+func (b *TelegramBot) SendCallback(c tgbotapi.CallbackConfig) (*tgbotapi.APIResponse, error) {
+	response, err := b.api.Request(c)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to send callback")
+	}
+	return response, err
 }
 
 func (b *TelegramBot) DB() db.Storage {

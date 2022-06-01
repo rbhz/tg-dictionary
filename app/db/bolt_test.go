@@ -344,19 +344,19 @@ func TestBoltSaveQuiz(t *testing.T) {
 			Language: "ru",
 			Choices: []QuizItem{
 				{
-					Word:         "t1",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t1",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "t2",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t2",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "test",
-					Translations: []string{"t1", "t2"},
-					Correct:      true,
+					Word:    "test",
+					Text:    "t1, t2",
+					Correct: true,
 				},
 			},
 		}
@@ -382,19 +382,19 @@ func TestBoltGetQuiz(t *testing.T) {
 			Language: "ru",
 			Choices: []QuizItem{
 				{
-					Word:         "t1",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t1",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "t2",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t2",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "test",
-					Translations: []string{"t1", "t2"},
-					Correct:      true,
+					Word:    "test",
+					Text:    "t1, t2",
+					Correct: true,
 				},
 			},
 		}
