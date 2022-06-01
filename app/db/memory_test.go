@@ -53,7 +53,7 @@ func TestInMemoryGetUser(t *testing.T) {
 	})
 }
 
-func TestSaveUser(t *testing.T) {
+func TestInMemorySaveUser(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		storage := NewInMemoryStorage()
 		user := User{ID: UserID(1), Username: "test", Language: "en"}
@@ -128,5 +128,32 @@ func TestInMemoryGetUserDictionary(t *testing.T) {
 		res, err := storage.GetUserDictionary(UserID(1))
 		assert.NoError(t, err)
 		assert.Equal(t, map[UserDictionaryItem]DictionaryItem{}, res)
+	})
+}
+
+func TestInMemoryGetQuiz(t *testing.T) {
+	t.Run("existing", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		quiz := Quiz{ID: "test", User: UserID(1), Language: "en"}
+		require.NoError(t, storage.SaveQuiz(quiz))
+		res, err := storage.GetQuiz("test")
+		assert.NoError(t, err)
+		assert.Equal(t, quiz, res)
+	})
+	t.Run("not found", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		_, err := storage.GetQuiz("test")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+}
+
+func TestInMemorySaveQuoz(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		storage := NewInMemoryStorage()
+		quiz := Quiz{ID: "test", User: UserID(1), Language: "en"}
+		require.NoError(t, storage.SaveQuiz(quiz))
+		res, err := storage.GetQuiz("test")
+		assert.NoError(t, err)
+		assert.Equal(t, quiz, res)
 	})
 }
