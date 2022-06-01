@@ -38,8 +38,8 @@ type Storage interface {
 	SaveUserItem(UserDictionaryItem) error
 	// GetUserDictionary returns map of user dictionary items
 	GetUserDictionary(UserID) (map[UserDictionaryItem]DictionaryItem, error)
-	// // SaveQuiz saves quiz to DB
 
+	// SaveQuiz saves quiz to DB
 	SaveQuiz(Quiz) error
 	// GetQuiz returns quiz by ID
 	GetQuiz(string) (Quiz, error)
