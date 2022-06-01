@@ -51,6 +51,10 @@ type User struct {
 	IsAdmin  bool
 	Username string
 	Language string
+	Config   UserConfig
+}
+type UserConfig struct {
+	QuizType *string
 }
 
 // DictionaryItem hold data for a single dictionary item
@@ -154,22 +158,33 @@ type QuizResult struct {
 
 // QuizItem holds data for a single quiz item
 type QuizItem struct {
-	Word         string
-	Translations []string
-	Correct      bool
+	Word    string
+	Text    string
+	Correct bool
 }
+
+// types of quizzes
+const (
+	QuizTypeTranslations        = "translations"
+	QuizTypeReverseTranslations = "rTranslations"
+	QuizTypeMeanings            = "meanings"
+)
+const QuizTypeDefault = QuizTypeTranslations
 
 // Quiz holds data for a single quiz`
 type Quiz struct {
-	ID       string
-	User     UserID
-	Word     string
-	Language string
-	Choices  []QuizItem
-	Created  time.Time
-	Result   *QuizResult
+	ID          string
+	User        UserID
+	Word        string
+	DisplayWord string
+	Language    string
+	Type        string
+	Choices     []QuizItem
+	Created     time.Time
+	Result      *QuizResult
 }
 
+// SetResult sets checks if choice is correct and saves result
 func (q *Quiz) SetResult(choice int, s Storage) error {
 	if choice < 0 || choice >= len(q.Choices) {
 		return errors.New("invalid choice")
@@ -195,13 +210,16 @@ func (q *Quiz) SetResult(choice int, s Storage) error {
 	return nil
 }
 
-func NewQuiz(user UserID, word string, lang string, items []QuizItem) Quiz {
+// NewQuiz creates new quiz
+func NewQuiz(user UserID, word string, displayWord string, lang string, items []QuizItem, qType string) Quiz {
 	return Quiz{
-		ID:       GenerateID(),
-		User:     user,
-		Word:     word,
-		Language: lang,
-		Choices:  items,
-		Created:  time.Now(),
+		ID:          GenerateID(),
+		User:        user,
+		Type:        qType,
+		Word:        word,
+		DisplayWord: displayWord,
+		Language:    lang,
+		Choices:     items,
+		Created:     time.Now(),
 	}
 }

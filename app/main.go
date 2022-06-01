@@ -47,8 +47,14 @@ func main() {
 	// initialize Telegram bot
 	b, err := bot.NewTelegramBot(opts.BotToken, storage, []bot.Handler{
 		bot.StartHandler{},
+		// Settings
+		bot.ListSettingsHandler{},
+		bot.SendQuizTypesHandler{},
+		bot.SetQuizTypesHandler{},
+		// Quizzes
 		bot.QuizHandler{},
 		bot.QuizReplyHandler{},
+		// Dictionary
 		bot.NewWordHandler(opts.YandexDictionaryToken),
 	})
 	if err != nil {

@@ -2,9 +2,10 @@ package db
 
 import (
 	"testing"
+	"time"
+
 	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
 	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -153,28 +154,30 @@ func TestNewDictionaryItem(t *testing.T) {
 func TestNewQuiz(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		expected := Quiz{
-			User:     UserID(1),
-			Word:     "test",
-			Language: "ru",
+			User:        UserID(1),
+			Type:        QuizTypeTranslations,
+			Word:        "test",
+			DisplayWord: "test",
+			Language:    "ru",
 			Choices: []QuizItem{
 				{
-					Word:         "t1",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t1",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "t2",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t2",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "test",
-					Translations: []string{"t1", "t2"},
-					Correct:      true,
+					Word:    "test",
+					Text:    "t1, t2",
+					Correct: true,
 				},
 			},
 		}
-		actual := NewQuiz(UserID(1), expected.Word, expected.Language, expected.Choices)
+		actual := NewQuiz(UserID(1), expected.Word, expected.Word, expected.Language, expected.Choices, QuizTypeDefault)
 		assert.NotEmpty(t, actual.ID)
 		assert.NotEmpty(t, actual.Created)
 		expected.ID = actual.ID
@@ -192,19 +195,19 @@ func TestQuizSetResult(t *testing.T) {
 			Language: "ru",
 			Choices: []QuizItem{
 				{
-					Word:         "t1",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t1",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "t2",
-					Translations: []string{"t1", "t2"},
-					Correct:      false,
+					Word:    "t2",
+					Text:    "t1, t2",
+					Correct: false,
 				},
 				{
-					Word:         "test",
-					Translations: []string{"t1", "t2"},
-					Correct:      true,
+					Word:    "test",
+					Text:    "t1, t2",
+					Correct: true,
 				},
 			},
 		}
