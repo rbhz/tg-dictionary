@@ -118,7 +118,7 @@ func TestRedisSaveUserItem(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 		storage := RedisStorage{db: db}
-		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now()}
+		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().UTC()}
 		expected, err := json.Marshal(item)
 		require.NoError(t, err)
 		mock.ExpectHSet("user_item:1", "word", string(expected)).SetVal(1)
@@ -129,7 +129,7 @@ func TestRedisSaveUserItem(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 		storage := RedisStorage{db: db}
-		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now()}
+		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().UTC()}
 		expected, err := json.Marshal(item)
 		require.NoError(t, err)
 		mock.ExpectHSet("user_item:1", "word", string(expected)).SetErr(errors.New("FAIL"))
@@ -143,7 +143,7 @@ func TestRedisGetUserItem(t *testing.T) {
 	t.Run("existing", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 		storage := RedisStorage{db: db}
-		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().Truncate(time.Nanosecond)}
+		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().UTC().Truncate(time.Nanosecond)}
 		expected, err := json.Marshal(item)
 		require.NoError(t, err)
 		mock.ExpectHGet("user_item:1", "word").SetVal(string(expected))
@@ -155,7 +155,7 @@ func TestRedisGetUserItem(t *testing.T) {
 	t.Run("missing", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 		storage := RedisStorage{db: db}
-		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now()}
+		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().UTC()}
 		mock.ExpectHGet("user_item:1", "word").RedisNil()
 
 		_, err := storage.GetUserItem(item.User, item.Word)
@@ -164,7 +164,7 @@ func TestRedisGetUserItem(t *testing.T) {
 	t.Run("invalid JSON", func(t *testing.T) {
 		db, mock := redismock.NewClientMock()
 		storage := RedisStorage{db: db}
-		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now()}
+		item := UserDictionaryItem{Word: "word", User: UserID(1), Created: time.Now().UTC()}
 		mock.ExpectHGet("user_item:1", "word").SetVal("NOT_JSON")
 
 		_, err := storage.GetUserItem(item.User, item.Word)

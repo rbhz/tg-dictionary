@@ -208,8 +208,8 @@ func TestUserCtxMiddleware(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 			User: nil,
 			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-				NotBefore: time.Now().Unix(),
+				ExpiresAt: time.Now().UTC().Add(time.Hour * 24).Unix(),
+				NotBefore: time.Now().UTC().Unix(),
 			},
 		})
 		testJWT, err := token.SignedString(s.jwtSecret)
@@ -225,8 +225,8 @@ func TestUserCtxMiddleware(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, invalidJWTClaims{
 			User: "1",
 			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-				NotBefore: time.Now().Unix(),
+				ExpiresAt: time.Now().UTC().Add(time.Hour * 24).Unix(),
+				NotBefore: time.Now().UTC().Unix(),
 			},
 		})
 		testJWT, err := token.SignedString(s.jwtSecret)
@@ -238,8 +238,8 @@ func TestUserCtxMiddleware(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 			User: &userID,
 			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(-1 * time.Hour).Unix(),
-				NotBefore: time.Now().Unix(),
+				ExpiresAt: time.Now().UTC().Add(-1 * time.Hour).Unix(),
+				NotBefore: time.Now().UTC().Unix(),
 			},
 		})
 		testJWT, err := token.SignedString(s.jwtSecret)
@@ -251,8 +251,8 @@ func TestUserCtxMiddleware(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 			User: &userID,
 			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(time.Hour * 25).Unix(),
-				NotBefore: time.Now().Add(time.Hour * 1).Unix(),
+				ExpiresAt: time.Now().UTC().Add(time.Hour * 25).Unix(),
+				NotBefore: time.Now().UTC().Add(time.Hour * 1).Unix(),
 			},
 		})
 		testJWT, err := token.SignedString(s.jwtSecret)

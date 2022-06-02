@@ -11,8 +11,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const ctxUserKey = "user"
+type ctxKey int
 
+const (
+	ctxUserKey ctxKey = iota
+)
+
+// Handler describes a handler for a single update
 type Handler interface {
 	Handle(ctx context.Context, b Bot, u tgbotapi.Update)
 	Passthrough(tgbotapi.Update) bool
@@ -62,6 +67,7 @@ func (b *TelegramBot) processUpdate(u tgbotapi.Update) {
 	}
 }
 
+// Start updates handling
 func (b *TelegramBot) Start() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -72,6 +78,7 @@ func (b *TelegramBot) Start() {
 	}
 }
 
+// Send sends a message to a user
 func (b *TelegramBot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	message, err := b.api.Send(c)
 	if err != nil {
@@ -80,6 +87,7 @@ func (b *TelegramBot) Send(c tgbotapi.Chattable) (tgbotapi.Message, error) {
 	return message, err
 }
 
+// SendCallback sends a callback query response
 func (b *TelegramBot) SendCallback(c tgbotapi.CallbackConfig) (*tgbotapi.APIResponse, error) {
 	response, err := b.api.Request(c)
 	if err != nil {
@@ -88,10 +96,12 @@ func (b *TelegramBot) SendCallback(c tgbotapi.CallbackConfig) (*tgbotapi.APIResp
 	return response, err
 }
 
+// DB returns the bot's storage
 func (b *TelegramBot) DB() db.Storage {
 	return b.db
 }
 
+// NewTelegramBot creates a TelegramBot
 func NewTelegramBot(token string, db db.Storage, handlers []Handler) (*TelegramBot, error) {
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {

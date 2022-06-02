@@ -70,7 +70,7 @@ func TestInMemorySaveUserItem(t *testing.T) {
 		item := UserDictionaryItem{
 			User:    UserID(1),
 			Word:    "test",
-			Created: time.Now(),
+			Created: time.Now().UTC(),
 		}
 		require.NoError(t, storage.SaveUserItem(item))
 		resItem, err := storage.GetUserItem(UserID(1), "test")
@@ -85,7 +85,7 @@ func TestInMemoryGetUserItem(t *testing.T) {
 		item := UserDictionaryItem{
 			User:    UserID(1),
 			Word:    "test",
-			Created: time.Now(),
+			Created: time.Now().UTC(),
 		}
 		require.NoError(t, storage.SaveUserItem(item))
 		resItem, err := storage.GetUserItem(item.User, "test")
@@ -104,17 +104,17 @@ func TestInMemoryGetUserDictionary(t *testing.T) {
 	t.Run("existing", func(t *testing.T) {
 		storage := NewInMemoryStorage()
 		item1 := DictionaryItem{Word: "test"}
-		userItem1 := UserDictionaryItem{Word: item1.Word, User: UserID(1), Created: time.Now()}
+		userItem1 := UserDictionaryItem{Word: item1.Word, User: UserID(1), Created: time.Now().UTC()}
 		require.NoError(t, storage.Save(item1))
 		require.NoError(t, storage.SaveUserItem(userItem1))
 
 		item2 := DictionaryItem{Word: "test2"}
-		userItem2 := UserDictionaryItem{Word: item2.Word, User: UserID(1), Created: time.Now()}
+		userItem2 := UserDictionaryItem{Word: item2.Word, User: UserID(1), Created: time.Now().UTC()}
 		require.NoError(t, storage.Save(item2))
 		require.NoError(t, storage.SaveUserItem(userItem2))
 
 		item3 := DictionaryItem{Word: "test3"} // other user
-		userItem3 := UserDictionaryItem{Word: item3.Word, User: UserID(2), Created: time.Now()}
+		userItem3 := UserDictionaryItem{Word: item3.Word, User: UserID(2), Created: time.Now().UTC()}
 		require.NoError(t, storage.Save(item3))
 		require.NoError(t, storage.SaveUserItem(userItem3))
 

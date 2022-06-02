@@ -63,12 +63,12 @@ func ptrStr(s string) *string {
 }
 
 func TestGet(t *testing.T) {
-	validUrl := "https://api.dictionaryapi.dev/api/v2/entries/en/hello"
+	validURL := "https://api.dictionaryapi.dev/api/v2/entries/en/hello"
 	word := "hello"
 	t.Run("success", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(bytes.NewBufferString(exampleResponse)),
@@ -76,7 +76,7 @@ func TestGet(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := DictionaryAPIClient{client: httpClient, context: context.TODO()}
+		client := Client{client: httpClient, context: context.TODO()}
 		items, err := client.Get(word)
 		assert.NoError(t, err)
 		expected := []WordResponse{
@@ -122,11 +122,11 @@ func TestGet(t *testing.T) {
 	t.Run("reqest error", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{}, http.ErrServerClosed
 			}),
 		}
-		client := DictionaryAPIClient{client: httpClient, context: context.TODO()}
+		client := Client{client: httpClient, context: context.TODO()}
 		items, err := client.Get(word)
 		assert.ErrorIs(t, err, http.ErrServerClosed)
 		assert.Nil(t, items)
@@ -134,7 +134,7 @@ func TestGet(t *testing.T) {
 	t.Run("invalid response", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(bytes.NewBufferString("Invalid JSON")),
@@ -142,7 +142,7 @@ func TestGet(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := DictionaryAPIClient{client: httpClient, context: context.TODO()}
+		client := Client{client: httpClient, context: context.TODO()}
 		items, err := client.Get(word)
 		assert.Error(t, err)
 		assert.Nil(t, items)
@@ -150,7 +150,7 @@ func TestGet(t *testing.T) {
 	t.Run("error status", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 400,
 					Body:       ioutil.NopCloser(bytes.NewBufferString(`{"status": "ERROR"}`)),
@@ -158,7 +158,7 @@ func TestGet(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := DictionaryAPIClient{client: httpClient, context: context.TODO()}
+		client := Client{client: httpClient, context: context.TODO()}
 		items, err := client.Get(word)
 		assert.Error(t, err)
 		assert.Nil(t, items)
@@ -166,7 +166,7 @@ func TestGet(t *testing.T) {
 	t.Run("error status 404", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 404,
 					Body:       ioutil.NopCloser(bytes.NewBufferString(`{"status": "ERROR"}`)),
@@ -174,7 +174,7 @@ func TestGet(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := DictionaryAPIClient{client: httpClient, context: context.TODO()}
+		client := Client{client: httpClient, context: context.TODO()}
 		items, err := client.Get(word)
 		assert.ErrorIs(t, err, ErrNotFound)
 		assert.Nil(t, items)

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
-	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
-	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
-	"github.com/rbhz/tg-dictionary/app/db"
 	"time"
+
+	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
+	yandexdictionary "github.com/rbhz/tg-dictionary/app/clients/yandexdictionary"
+	"github.com/rbhz/tg-dictionary/app/db"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
@@ -38,6 +39,7 @@ ___
 <u>Phonetics</u>: {{ .Item.Phonetics.Text }}
 `
 
+// GetItemMessageText executes template with dictionary item data
 func GetItemMessageText(item db.DictionaryItem) string {
 	tmpl, err := template.New("template").Parse(dictionaryItemTemplate)
 	if err != nil {
@@ -51,18 +53,18 @@ func GetItemMessageText(item db.DictionaryItem) string {
 	return buf.String()
 }
 
+// WordHandler handles word requests
 type WordHandler struct {
 	tranlationsToken string
+	neverPassthorugh
 }
 
-func (h WordHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Match returns true if message is a text
 func (h WordHandler) Match(u tgbotapi.Update) bool {
 	return u.Message != nil && u.Message.Text != "" && !u.Message.IsCommand()
 }
 
+// Handle collects word data and sends it to user
 func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	word := strings.ToLower(u.Message.Text)
 	if strings.Contains(word, " ") {
@@ -84,7 +86,7 @@ func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 		b.DB().SaveUserItem(db.UserDictionaryItem{
 			User:    userID,
 			Word:    item.Word,
-			Created: time.Now(),
+			Created: time.Now().UTC(),
 		})
 	}
 
@@ -105,45 +107,45 @@ func (h WordHandler) getItemData(ctx context.Context, word string, storage db.St
 	var item db.DictionaryItem
 	if err == nil {
 		return &dbItem, nil
-	} else {
-		dictOut, dictErrChan := make(chan []dictionaryapi.WordResponse), make(chan error)
-		translationOut, translationErrChar := make(chan ya_dictionary.TranslationResponse), make(chan error)
-		go func() {
-			client := dictionaryapi.NewDictionaryAPIClient(ctx)
-			dictionary, err := client.Get(word)
-			dictOut <- dictionary
-			dictErrChan <- err
-		}()
-		go func() {
-			client := ya_dictionary.NewYaDictionaryClient(ctx, h.tranlationsToken)
-			translation, err := client.Translate(word, fromLanguage, toLanguage)
-			translationOut <- translation
-			translationErrChar <- err
-		}()
-		translation, translationErr := <-translationOut, <-translationErrChar
-		dictionary, dictErr := <-dictOut, <-dictErrChan
-		if dictErr != nil {
-			if errors.Is(dictErr, dictionaryapi.ErrNotFound) {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("get dictionary info: %w", dictErr)
-		}
-		translations := make(map[string]ya_dictionary.TranslationResponse, 1)
-		if translationErr != nil {
-			if !errors.Is(translationErr, ya_dictionary.ErrUnknown) {
-				log.Error().Err(err).Str("word", word).Msg("failed to get translation info")
-			}
-		} else {
-			translations[toLanguage] = translation
-		}
-		item = db.NewDictionaryItem(word, dictionary, translations)
-		if err := storage.Save(item); err != nil {
-			return nil, fmt.Errorf("save to db: %w", err)
-		}
-		return &item, nil
 	}
+	dictOut, dictErrChan := make(chan []dictionaryapi.WordResponse), make(chan error)
+	translationOut, translationErrChar := make(chan yandexdictionary.TranslationResponse), make(chan error)
+	go func() {
+		client := dictionaryapi.NewClient(ctx)
+		dictionary, err := client.Get(word)
+		dictOut <- dictionary
+		dictErrChan <- err
+	}()
+	go func() {
+		client := yandexdictionary.NewClient(ctx, h.tranlationsToken)
+		translation, err := client.Translate(word, fromLanguage, toLanguage)
+		translationOut <- translation
+		translationErrChar <- err
+	}()
+	translation, translationErr := <-translationOut, <-translationErrChar
+	dictionary, dictErr := <-dictOut, <-dictErrChan
+	if dictErr != nil {
+		if errors.Is(dictErr, dictionaryapi.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("get dictionary info: %w", dictErr)
+	}
+	translations := make(map[string]yandexdictionary.TranslationResponse, 1)
+	if translationErr != nil {
+		if !errors.Is(translationErr, yandexdictionary.ErrUnknown) {
+			log.Error().Err(err).Str("word", word).Msg("failed to get translation info")
+		}
+	} else {
+		translations[toLanguage] = translation
+	}
+	item = db.NewDictionaryItem(word, dictionary, translations)
+	if err := storage.Save(item); err != nil {
+		return nil, fmt.Errorf("save to db: %w", err)
+	}
+	return &item, nil
 }
 
+// NewWordHandler creates new word handler
 func NewWordHandler(tranlationsToken string) WordHandler {
 	return WordHandler{tranlationsToken: tranlationsToken}
 }

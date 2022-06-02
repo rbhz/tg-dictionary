@@ -1,4 +1,4 @@
-package ya_dictionary
+package yandexdictionary
 
 import (
 	"bytes"
@@ -66,13 +66,13 @@ func ptrStr(s string) *string {
 }
 
 func TestTranslate(t *testing.T) {
-	validUrl := "https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=test&lang=en-ru&text=time"
+	validURL := "https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=test&lang=en-ru&text=time"
 	APItoken := "test"
 	word := "time"
 	t.Run("success", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(bytes.NewBufferString(exampleResponse)),
@@ -80,7 +80,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
+		client := Client{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 
 		assert.NoError(t, err)
@@ -132,11 +132,11 @@ func TestTranslate(t *testing.T) {
 	t.Run("reqest error", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{}, http.ErrServerClosed
 			}),
 		}
-		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
+		client := Client{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.ErrorIs(t, err, http.ErrServerClosed)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -144,7 +144,7 @@ func TestTranslate(t *testing.T) {
 	t.Run("invalid response", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 200,
 					Body:       ioutil.NopCloser(bytes.NewBufferString("Invalid JSON")),
@@ -152,7 +152,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
+		client := Client{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.Error(t, err)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -160,7 +160,7 @@ func TestTranslate(t *testing.T) {
 	t.Run("error status", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 400,
 					Body:       ioutil.NopCloser(bytes.NewBufferString(`{"status": "ERROR"}`)),
@@ -168,7 +168,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
+		client := Client{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		tranlation, err := client.Translate(word, "en", "ru")
 		assert.Error(t, err)
 		assert.Equal(t, TranslationResponse{}, tranlation)
@@ -176,7 +176,7 @@ func TestTranslate(t *testing.T) {
 	t.Run("test same as input", func(t *testing.T) {
 		httpClient := &http.Client{
 			Transport: RoundTripFunc(func(req *http.Request) (*http.Response, error) {
-				assert.Equal(t, validUrl, req.URL.String())
+				assert.Equal(t, validURL, req.URL.String())
 				return &http.Response{
 					StatusCode: 200,
 					Body: ioutil.NopCloser(
@@ -186,7 +186,7 @@ func TestTranslate(t *testing.T) {
 				}, nil
 			}),
 		}
-		client := YandexDictionaryClient{client: httpClient, apiToken: APItoken, context: context.TODO()}
+		client := Client{client: httpClient, apiToken: APItoken, context: context.TODO()}
 		_, err := client.Translate(word, "en", "ru")
 		assert.ErrorIs(t, err, ErrUnknown)
 

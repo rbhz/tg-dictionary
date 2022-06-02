@@ -18,6 +18,7 @@ const (
 	prefixQuiz     = "quiz:"
 )
 
+// RedisStorage is a storage implementation using redis
 type RedisStorage struct {
 	db *redis.Client
 }
@@ -85,6 +86,7 @@ func (s *RedisStorage) SaveUser(user User) error {
 	return nil
 }
 
+// GetUserItem returns user item from redis
 func (s *RedisStorage) GetUserItem(user UserID, word string) (UserDictionaryItem, error) {
 	key := prefixUserItem + strconv.FormatInt(int64(user), 10)
 	data, err := s.db.HGet(context.Background(), key, word).Result()
@@ -102,6 +104,7 @@ func (s *RedisStorage) GetUserItem(user UserID, word string) (UserDictionaryItem
 	return item, nil
 }
 
+// SaveUserItem to redis
 func (s *RedisStorage) SaveUserItem(item UserDictionaryItem) error {
 	key := prefixUserItem + strconv.FormatInt(int64(item.User), 10)
 	jdata, jerr := json.Marshal(item)
@@ -175,7 +178,7 @@ func (s *RedisStorage) GetQuiz(id string) (Quiz, error) {
 	return quiz, nil
 }
 
-// Save Quiz to redis
+// SaveQuiz to redis
 func (s *RedisStorage) SaveQuiz(q Quiz) error {
 	key := prefixQuiz + q.ID
 	jdata, jerr := json.Marshal(q)

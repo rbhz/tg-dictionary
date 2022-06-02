@@ -9,23 +9,31 @@ import (
 	"github.com/rbhz/tg-dictionary/app/db"
 )
 
-const CtxUserIDKey = "userID"
+type ctxKey int
 
+const (
+	ctxUserIDKey ctxKey = iota
+)
+
+// Server is the API main server struct
 type Server struct {
 	storage db.Storage
 	router  chi.Router
 }
 
+// Run starts the server
 func (s *Server) Run(port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), s.router)
 }
 
-func (s *Server) setJsonContentType(next http.Handler) http.Handler {
+func (s *Server) setJSONContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
 	})
 }
+
+// NewServer creates a new server
 func NewServer(storage db.Storage, tgToken string, jwtSecret string) *Server {
 	s := &Server{storage: storage}
 	dict := dictionaryService{storage: storage}
@@ -37,7 +45,7 @@ func NewServer(storage db.Storage, tgToken string, jwtSecret string) *Server {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(s.setJsonContentType)
+		r.Use(s.setJSONContentType)
 		r.Route("/auth", func(r chi.Router) {
 			r.Get("/telegram", auth.TelegramRedirectHandler)
 		})

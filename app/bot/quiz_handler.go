@@ -48,19 +48,20 @@ func GetQuizMessageText(quiz db.Quiz) (string, error) {
 	return buf.String(), nil
 }
 
+// ErrNotEnoughWords is returned when there are not enough words in dictionary
 var ErrNotEnoughWords = errors.New("not enough words")
 
 // QuizHandler handles quiz command
-type QuizHandler struct{}
+type QuizHandler struct {
+	neverPassthorugh
+}
 
+// Match returns true if update is /quiz command
 func (h QuizHandler) Match(u tgbotapi.Update) bool {
 	return u.Message != nil && u.Message.Command() == "quiz"
 }
 
-func (h QuizHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Handle generates new quiz and sends it to user
 func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	user, ok := ctx.Value(ctxUserKey).(db.User)
 	if !ok {
@@ -252,23 +253,23 @@ func (h QuizHandler) getMessageKeyboard(quiz db.Quiz) tgbotapi.InlineKeyboardMar
 	for idx := range quiz.Choices {
 		buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData(
 			fmt.Sprintf("%d", idx+1),
-			fmt.Sprintf("%v|%v|%d", callbackIdQuizReply, quiz.ID, idx)),
+			fmt.Sprintf("%v|%v|%d", callbackIDQuizReply, quiz.ID, idx)),
 		)
 	}
 	return tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(buttons...))
 }
 
-// QuizReplyCallbackHandler handles quiz reply callback
-type QuizReplyHandler struct{}
+// QuizReplyHandler handles quiz reply callback
+type QuizReplyHandler struct {
+	neverPassthorugh
+}
 
+// Match returns true if update is quiz reply callback
 func (h QuizReplyHandler) Match(u tgbotapi.Update) bool {
-	return u.CallbackQuery != nil && u.CallbackQuery.Data[:3] == fmt.Sprintf("%v|", callbackIdQuizReply)
+	return u.CallbackQuery != nil && u.CallbackQuery.Data[:3] == fmt.Sprintf("%v|", callbackIDQuizReply)
 }
 
-func (h QuizReplyHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Handle checks if response is correct and saves it to quiz
 func (h QuizReplyHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	quizID, choice, err := h.parseQuery(u)
 	if err != nil {

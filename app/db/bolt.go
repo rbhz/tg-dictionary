@@ -16,7 +16,7 @@ const (
 	bucketQuizzes           = "Quizzes"
 )
 
-// BoltStorage implements storage interface for BoltDB
+// BoltStorage is a storage implementation using BoltDB
 type BoltStorage struct {
 	db *bolt.DB
 }
@@ -65,6 +65,7 @@ func (b *BoltStorage) Save(item DictionaryItem) error {
 	})
 }
 
+// GetUser returns user by id
 func (b *BoltStorage) GetUser(user UserID) (User, error) {
 	var res User
 	if err := b.db.View(func(tx *bolt.Tx) error {
@@ -83,6 +84,7 @@ func (b *BoltStorage) GetUser(user UserID) (User, error) {
 	return res, nil
 }
 
+// SaveUser saves user to database
 func (b *BoltStorage) SaveUser(user User) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketUsers))
@@ -98,6 +100,7 @@ func (b *BoltStorage) SaveUser(user User) error {
 	})
 }
 
+// GetUserItem returns user dictionary item
 func (b *BoltStorage) GetUserItem(user UserID, word string) (UserDictionaryItem, error) {
 	var res UserDictionaryItem
 	if err := b.db.View(func(tx *bolt.Tx) error {
@@ -120,6 +123,7 @@ func (b *BoltStorage) GetUserItem(user UserID, word string) (UserDictionaryItem,
 	return res, nil
 }
 
+// SaveUserItem saves user dictionary item to database
 func (b *BoltStorage) SaveUserItem(item UserDictionaryItem) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucketUsersDictionaries))
@@ -136,6 +140,7 @@ func (b *BoltStorage) SaveUserItem(item UserDictionaryItem) error {
 	})
 }
 
+// GetUserDictionary returns dictionary items for user
 func (b *BoltStorage) GetUserDictionary(user UserID) (map[UserDictionaryItem]DictionaryItem, error) {
 	res := make(map[UserDictionaryItem]DictionaryItem)
 	err := b.db.View(func(tx *bolt.Tx) error {

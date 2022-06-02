@@ -41,8 +41,8 @@ func (s *authService) createToken(userID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims{
 		User: &userID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-			NotBefore: time.Now().Unix(),
+			ExpiresAt: time.Now().UTC().Add(time.Hour * 24).Unix(),
+			NotBefore: time.Now().UTC().Unix(),
 		},
 	})
 	tokenStr, err := token.SignedString(s.jwtSecret)
@@ -138,7 +138,7 @@ func (s *authService) UserCtx(next http.Handler) http.Handler {
 			w.Write([]byte("unauthorized"))
 			return
 		}
-		ctx := context.WithValue(r.Context(), CtxUserIDKey, db.UserID(*claims.User))
+		ctx := context.WithValue(r.Context(), ctxUserIDKey, db.UserID(*claims.User))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

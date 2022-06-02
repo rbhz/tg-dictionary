@@ -11,16 +11,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// ErrNotFound is returned when word is not found
 var ErrNotFound = errors.New("word not found")
 
-// DictionaryAPIClient implements integration with DictionaryAPI
+// Client implements integration with DictionaryAPI
 // docs: https://dictionaryapi.dev/
-type DictionaryAPIClient struct {
+type Client struct {
 	client  *http.Client
 	context context.Context
 }
 
-func (c *DictionaryAPIClient) Get(word string) (items []WordResponse, err error) {
+// Get returns dictionary item by word
+func (c *Client) Get(word string) (items []WordResponse, err error) {
 	req, err := http.NewRequest(
 		http.MethodGet, "https://api.dictionaryapi.dev/api/v2/entries/en/"+word, nil,
 	)
@@ -56,7 +58,7 @@ func (c *DictionaryAPIClient) Get(word string) (items []WordResponse, err error)
 	return items, nil
 }
 
-// NewDictionaryAPIClient creates DictionaryAPIClient with default HTTP client
-func NewDictionaryAPIClient(ctx context.Context) DictionaryAPIClient {
-	return DictionaryAPIClient{client: http.DefaultClient, context: ctx}
+// NewClient creates Client with default HTTP client
+func NewClient(ctx context.Context) Client {
+	return Client{client: http.DefaultClient, context: ctx}
 }

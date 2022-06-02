@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
-	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
+	"github.com/rbhz/tg-dictionary/app/clients/yandexdictionary"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,13 +74,13 @@ func TestNewDictionaryItem(t *testing.T) {
 		}
 	}
 
-	getTranlationsResponse := func() ya_dictionary.TranslationResponse {
-		return ya_dictionary.TranslationResponse{
-			Definitions: []ya_dictionary.Definition{
+	getTranlationsResponse := func() yandexdictionary.TranslationResponse {
+		return yandexdictionary.TranslationResponse{
+			Definitions: []yandexdictionary.Definition{
 				{
 					Text:         "Test",
 					PartOfSpeech: "pos1",
-					Translations: []ya_dictionary.Translation{
+					Translations: []yandexdictionary.Translation{
 						{Text: "тест", PartOfSpeech: "существительное"},
 					},
 				},
@@ -127,7 +127,8 @@ func TestNewDictionaryItem(t *testing.T) {
 		actual := NewDictionaryItem(
 			"test",
 			getDictionaryResponse(),
-			map[string]ya_dictionary.TranslationResponse{"ru": getTranlationsResponse()},
+			// map[string]yandexdictionary.TranslationResponse{"ru": getTranlationsResponse()},
+			map[string]yandexdictionary.TranslationResponse{"ru": getTranlationsResponse()},
 		)
 		assert.Equal(t, getExpected(), actual)
 	})
@@ -140,7 +141,7 @@ func TestNewDictionaryItem(t *testing.T) {
 		expected.Phonetics.Audio = "phon_audio2"
 		actual := NewDictionaryItem(
 			"test", response,
-			map[string]ya_dictionary.TranslationResponse{"ru": getTranlationsResponse()},
+			map[string]yandexdictionary.TranslationResponse{"ru": getTranlationsResponse()},
 		)
 		assert.Equal(t, expected, actual)
 	})
@@ -219,7 +220,7 @@ func TestQuizSetResult(t *testing.T) {
 		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
 			Word:    quiz.Word,
 			User:    quiz.User,
-			Created: time.Now()}))
+			Created: time.Now().UTC()}))
 
 		assert.NoError(t, quiz.SetResult(2, storage))
 		require.NotNil(t, quiz.Result)
@@ -237,7 +238,7 @@ func TestQuizSetResult(t *testing.T) {
 		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
 			Word:    quiz.Word,
 			User:    quiz.User,
-			Created: time.Now()}))
+			Created: time.Now().UTC()}))
 
 		assert.NoError(t, quiz.SetResult(1, storage))
 		require.NotNil(t, quiz.Result)
@@ -256,7 +257,7 @@ func TestQuizSetResult(t *testing.T) {
 			require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
 				Word:    quiz.Word,
 				User:    quiz.User,
-				Created: time.Now()}))
+				Created: time.Now().UTC()}))
 			assert.Error(t, quiz.SetResult(choice, storage))
 		}
 	})
@@ -267,7 +268,7 @@ func TestQuizSetResult(t *testing.T) {
 		require.NoError(t, storage.SaveUserItem(UserDictionaryItem{
 			Word:    quiz.Word,
 			User:    quiz.User,
-			Created: time.Now()}))
+			Created: time.Now().UTC()}))
 		assert.NoError(t, quiz.SetResult(2, storage))
 		assert.Error(t, quiz.SetResult(2, storage))
 	})

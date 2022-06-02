@@ -15,38 +15,38 @@ const (
 )
 
 // ListSettingsHandler handles /settings command
-type ListSettingsHandler struct{}
+type ListSettingsHandler struct {
+	neverPassthorugh
+}
 
+// Match returns true if update is /settings command
 func (h ListSettingsHandler) Match(u tgbotapi.Update) bool {
 	return u.Message != nil && u.Message.Command() == "settings"
 }
 
-func (h ListSettingsHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Handle sends settings list keyboard
 func (h ListSettingsHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(u.Message.From.ID, "Choose what do you want to change:")
 	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Quiz type", fmt.Sprintf("%v|%v", callbackIdSettings, settingQuizType)),
+			tgbotapi.NewInlineKeyboardButtonData("Quiz type", fmt.Sprintf("%v|%v", callbackIDSettings, settingQuizType)),
 		),
 	)
 	b.Send(msg)
 }
 
 // SendQuizTypesHandler sends available quiz types
-type SendQuizTypesHandler struct{}
+type SendQuizTypesHandler struct {
+	neverPassthorugh
+}
 
+// Match returns true if update is quiz settings callback
 func (h SendQuizTypesHandler) Match(u tgbotapi.Update) bool {
 	return u.CallbackQuery != nil &&
-		u.CallbackQuery.Data == fmt.Sprintf("%v|%v", callbackIdSettings, settingQuizType)
+		u.CallbackQuery.Data == fmt.Sprintf("%v|%v", callbackIDSettings, settingQuizType)
 }
 
-func (h SendQuizTypesHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Handle sends settings quiz type lists keyboard
 func (h SendQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	user, ok := ctx.Value(ctxUserKey).(db.User)
 	if !ok {
@@ -70,17 +70,17 @@ func (h SendQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Upda
 	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
-				"Translations", fmt.Sprintf("%v|%v|%v", callbackIdSettings, settingQuizType, db.QuizTypeTranslations),
+				"Translations", fmt.Sprintf("%v|%v|%v", callbackIDSettings, settingQuizType, db.QuizTypeTranslations),
 			),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
-				"Reverse translations", fmt.Sprintf("%v|%v|%v", callbackIdSettings, settingQuizType, db.QuizTypeReverseTranslations),
+				"Reverse translations", fmt.Sprintf("%v|%v|%v", callbackIDSettings, settingQuizType, db.QuizTypeReverseTranslations),
 			),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(
-				"Meanings", fmt.Sprintf("%v|%v|%v", callbackIdSettings, settingQuizType, db.QuizTypeMeanings),
+				"Meanings", fmt.Sprintf("%v|%v|%v", callbackIDSettings, settingQuizType, db.QuizTypeMeanings),
 			),
 		),
 	)
@@ -88,18 +88,18 @@ func (h SendQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Upda
 
 }
 
-// Set QuizTypeHandler saves quiz type to user config
-type SetQuizTypesHandler struct{}
+// SetQuizTypesHandler saves quiz type to user config
+type SetQuizTypesHandler struct {
+	neverPassthorugh
+}
 
+// Match returns true if update is quiz settings callback with picked type
 func (h SetQuizTypesHandler) Match(u tgbotapi.Update) bool {
 	return u.CallbackQuery != nil &&
-		strings.HasPrefix(u.CallbackQuery.Data, fmt.Sprintf("%v|%v|", callbackIdSettings, settingQuizType))
+		strings.HasPrefix(u.CallbackQuery.Data, fmt.Sprintf("%v|%v|", callbackIDSettings, settingQuizType))
 }
 
-func (h SetQuizTypesHandler) Passthrough(u tgbotapi.Update) bool {
-	return false
-}
-
+// Handle saves quiz type to user config
 func (h SetQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	user, ok := ctx.Value(ctxUserKey).(db.User)
 	if !ok {

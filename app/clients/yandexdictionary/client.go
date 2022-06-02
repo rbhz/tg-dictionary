@@ -1,4 +1,4 @@
-package ya_dictionary
+package yandexdictionary
 
 import (
 	"context"
@@ -11,17 +11,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// ErrUnknown is returned when no translation is found
 var ErrUnknown = errors.New("failed to translate text")
 
-// MyMemoryClient implements integration with yandex dictionary API
+// Client implements integration with yandex dictionary API
 // docs: https://yandex.com/dev/dictionary/doc/dg/concepts/api-overview.html
-type YandexDictionaryClient struct {
+type Client struct {
 	apiToken string
 	client   *http.Client
 	context  context.Context
 }
 
-func (c YandexDictionaryClient) Translate(text string, from string, to string) (TranslationResponse, error) {
+// Translate translates text
+func (c Client) Translate(text string, from string, to string) (TranslationResponse, error) {
 	var result TranslationResponse
 	req, err := http.NewRequest(
 		http.MethodGet, "https://dictionary.yandex.net/api/v1/dicservice.json/lookup", nil,
@@ -64,6 +66,7 @@ func (c YandexDictionaryClient) Translate(text string, from string, to string) (
 	return result, nil
 }
 
-func NewYaDictionaryClient(ctx context.Context, apiToken string) YandexDictionaryClient {
-	return YandexDictionaryClient{apiToken: apiToken, client: http.DefaultClient, context: ctx}
+// NewClient creates new client
+func NewClient(ctx context.Context, apiToken string) Client {
+	return Client{apiToken: apiToken, client: http.DefaultClient, context: ctx}
 }

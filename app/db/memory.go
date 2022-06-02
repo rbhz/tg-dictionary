@@ -2,6 +2,7 @@ package db
 
 import "sync"
 
+// InMemoryStorage is a storage implementation using in-memory maps
 type InMemoryStorage struct {
 	dictionary        map[string]DictionaryItem
 	users             map[UserID]User
@@ -10,6 +11,7 @@ type InMemoryStorage struct {
 	mx                sync.RWMutex
 }
 
+// Get returns dictionary item by word
 func (d *InMemoryStorage) Get(word string) (DictionaryItem, error) {
 	d.mx.RLock()
 	defer d.mx.RUnlock()
@@ -20,6 +22,7 @@ func (d *InMemoryStorage) Get(word string) (DictionaryItem, error) {
 	return item, nil
 }
 
+// Save saves dictionary item
 func (d *InMemoryStorage) Save(item DictionaryItem) error {
 	d.mx.Lock()
 	defer d.mx.Unlock()
@@ -27,6 +30,7 @@ func (d *InMemoryStorage) Save(item DictionaryItem) error {
 	return nil
 }
 
+// GetUser returns user by ID
 func (d *InMemoryStorage) GetUser(id UserID) (User, error) {
 	d.mx.RLock()
 	defer d.mx.RUnlock()
@@ -37,6 +41,7 @@ func (d *InMemoryStorage) GetUser(id UserID) (User, error) {
 	return item, nil
 }
 
+// SaveUser saves user
 func (d *InMemoryStorage) SaveUser(item User) error {
 	d.mx.Lock()
 	defer d.mx.Unlock()
@@ -44,6 +49,7 @@ func (d *InMemoryStorage) SaveUser(item User) error {
 	return nil
 }
 
+// GetUserItem returns item from user dictionary
 func (d *InMemoryStorage) GetUserItem(user UserID, word string) (UserDictionaryItem, error) {
 	d.mx.RLock()
 	defer d.mx.RUnlock()
@@ -54,6 +60,7 @@ func (d *InMemoryStorage) GetUserItem(user UserID, word string) (UserDictionaryI
 	return item, nil
 }
 
+// SaveUserItem saves UserDictionaryItem
 func (d *InMemoryStorage) SaveUserItem(item UserDictionaryItem) error {
 	d.mx.Lock()
 	defer d.mx.Unlock()
@@ -66,6 +73,7 @@ func (d *InMemoryStorage) SaveUserItem(item UserDictionaryItem) error {
 	return nil
 }
 
+// GetUserDictionary returns map of user dictionary items
 func (d *InMemoryStorage) GetUserDictionary(user UserID) (map[UserDictionaryItem]DictionaryItem, error) {
 	result := make(map[UserDictionaryItem]DictionaryItem)
 	d.mx.RLock()
@@ -76,6 +84,7 @@ func (d *InMemoryStorage) GetUserDictionary(user UserID) (map[UserDictionaryItem
 	return result, nil
 }
 
+// SaveQuiz saves quiz
 func (d *InMemoryStorage) SaveQuiz(q Quiz) error {
 	d.mx.Lock()
 	defer d.mx.Unlock()
@@ -83,6 +92,7 @@ func (d *InMemoryStorage) SaveQuiz(q Quiz) error {
 	return nil
 }
 
+// GetQuiz returns quiz by ID
 func (d *InMemoryStorage) GetQuiz(id string) (Quiz, error) {
 	d.mx.RLock()
 	defer d.mx.RUnlock()
@@ -93,6 +103,7 @@ func (d *InMemoryStorage) GetQuiz(id string) (Quiz, error) {
 	return q, nil
 }
 
+// NewInMemoryStorage creates new empty in-memory storage
 func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{
 		users:             make(map[UserID]User),

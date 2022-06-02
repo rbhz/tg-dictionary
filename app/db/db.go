@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
-	"github.com/rbhz/tg-dictionary/app/clients/ya_dictionary"
+	yandexdictionary "github.com/rbhz/tg-dictionary/app/clients/yandexdictionary"
 
 	"github.com/google/uuid"
 )
 
+// UserID is a type for users ID
 type UserID int64
 
+// ErrNotFound is returned when object not found
 var ErrNotFound error = errors.New("not found")
 
+// GenerateID generates new uuid and encodes it to base64
 func GenerateID() string {
 	id := [16]byte(uuid.New())
 	return base64.RawURLEncoding.EncodeToString(id[:])
@@ -53,6 +56,8 @@ type User struct {
 	Language string
 	Config   UserConfig
 }
+
+// UserConfig holds user config params
 type UserConfig struct {
 	QuizType *string
 }
@@ -83,10 +88,11 @@ type translation struct {
 	PartOfSpeech string
 }
 
+// NewDictionaryItem creates new dictionary item from dictionary & translations responses
 func NewDictionaryItem(
 	word string,
 	dictionaryResponse []dictionaryapi.WordResponse,
-	translations map[string]ya_dictionary.TranslationResponse,
+	translations map[string]yandexdictionary.TranslationResponse,
 ) DictionaryItem {
 	item := DictionaryItem{Word: word}
 	var phoneticsText, phoneticAudio string
@@ -168,8 +174,9 @@ const (
 	QuizTypeTranslations        = "translations"
 	QuizTypeReverseTranslations = "rTranslations"
 	QuizTypeMeanings            = "meanings"
+
+	QuizTypeDefault = QuizTypeTranslations
 )
-const QuizTypeDefault = QuizTypeTranslations
 
 // Quiz holds data for a single quiz`
 type Quiz struct {
@@ -202,7 +209,7 @@ func (q *Quiz) SetResult(choice int, s Storage) error {
 		if err != nil {
 			return err
 		}
-		now := time.Now()
+		now := time.Now().UTC()
 		item.LastQuiz = &now
 		s.SaveUserItem(item)
 	}
@@ -220,6 +227,6 @@ func NewQuiz(user UserID, word string, displayWord string, lang string, items []
 		DisplayWord: displayWord,
 		Language:    lang,
 		Choices:     items,
-		Created:     time.Now(),
+		Created:     time.Now().UTC(),
 	}
 }

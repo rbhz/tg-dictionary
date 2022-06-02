@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// UserDictionaryItem represents user dictionary item in API response
 type UserDictionaryItem struct {
 	Word     db.DictionaryItem
 	UserItem db.UserDictionaryItem
@@ -22,9 +23,9 @@ type dictionaryService struct {
 
 // GetUserDictionary returns user dictionary
 func (d dictionaryService) GetUserDictionary(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value(CtxUserIDKey).(db.UserID)
+	userID, ok := r.Context().Value(ctxUserIDKey).(db.UserID)
 	if !ok {
-		log.Error().Interface("user", r.Context().Value(CtxUserIDKey)).Msg("invalid user id in context")
+		log.Error().Interface("user", r.Context().Value(ctxUserIDKey)).Msg("invalid user id in context")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -72,7 +73,7 @@ func (d dictionaryService) GetWord(w http.ResponseWriter, r *http.Request) {
 
 // UpdateWord updates word data
 func (d dictionaryService) UpdateWord(w http.ResponseWriter, r *http.Request) {
-	uid := r.Context().Value(CtxUserIDKey)
+	uid := r.Context().Value(ctxUserIDKey)
 	userID := uid.(db.UserID)
 	user, err := d.storage.GetUser(userID)
 	if err != nil {

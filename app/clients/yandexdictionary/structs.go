@@ -1,15 +1,18 @@
-package ya_dictionary
+package yandexdictionary
 
+// TranslationResponse Describes API response
 type TranslationResponse struct {
 	Definitions []Definition `json:"def"`
 }
 
+// Definition holds definition data in response
 type Definition struct {
 	Text         string        `json:"text"`
 	PartOfSpeech string        `json:"pos"`
 	Translations []Translation `json:"tr"`
 }
 
+// Translation holds translation data in response
 type Translation struct {
 	Text         string     `json:"text"`
 	PartOfSpeech string     `json:"pos"`
@@ -18,6 +21,7 @@ type Translation struct {
 	Meanings     []textItem `json:"mean"`
 }
 
+// Example holds example data in response
 type Example struct {
 	Text         string     `json:"text"`
 	Translations []textItem `json:"tr"`

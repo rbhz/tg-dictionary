@@ -134,7 +134,7 @@ func TestGetWord(t *testing.T) {
 
 func TestUpdateWord(t *testing.T) {
 	const path = "/api/v1/dictionary/word"
-	const wordJson = `{
+	const wordJSON = `{
 	"Word":"test",
 	"Meanings": [
 		{"PartOfSpeech" :"noun", "Definition" : "test word", "Examples": ["test example"]}
@@ -149,7 +149,7 @@ func TestUpdateWord(t *testing.T) {
 		defer cancel()
 		require.NoError(t, storage.SaveUser(db.User{ID: db.UserID(testUserID), IsAdmin: true}))
 		require.NoError(t, storage.Save(db.DictionaryItem{Word: "test"}))
-		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJson))
+		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJSON))
 		require.NoError(t, err)
 		req.Header.Set("Authorization", getTestJWT())
 		r, err := http.DefaultClient.Do(req)
@@ -173,7 +173,7 @@ func TestUpdateWord(t *testing.T) {
 		ts, cancel := getTestServer(storage)
 		defer cancel()
 		require.NoError(t, storage.SaveUser(db.User{ID: db.UserID(testUserID), IsAdmin: true}))
-		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJson))
+		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJSON))
 		require.NoError(t, err)
 		req.Header.Set("Authorization", getTestJWT())
 		r, err := http.DefaultClient.Do(req)
@@ -223,7 +223,7 @@ func TestUpdateWord(t *testing.T) {
 		ts, cancel := getTestServer(storage)
 		defer cancel()
 		require.NoError(t, storage.SaveUser(db.User{ID: db.UserID(testUserID), IsAdmin: true}))
-		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJson))
+		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJSON))
 		require.NoError(t, err)
 		req.Header.Set("Authorization", getTestJWT())
 		r, err := http.DefaultClient.Do(req)
@@ -236,7 +236,7 @@ func TestUpdateWord(t *testing.T) {
 		ts, cancel := getTestServer(storage)
 		defer cancel()
 		require.NoError(t, storage.SaveUser(db.User{ID: db.UserID(testUserID)}))
-		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJson))
+		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJSON))
 		require.NoError(t, err)
 		req.Header.Set("Authorization", getTestJWT())
 		r, err := http.DefaultClient.Do(req)
@@ -251,7 +251,7 @@ func TestUpdateWord(t *testing.T) {
 		storage := db.NewInMemoryStorage()
 		ts, cancel := getTestServer(storage)
 		defer cancel()
-		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJson))
+		req, err := http.NewRequest(http.MethodPost, ts.URL+path+"/test", strings.NewReader(wordJSON))
 		require.NoError(t, err)
 		r, err := http.DefaultClient.Do(req)
 

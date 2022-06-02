@@ -285,7 +285,7 @@ func TestBoltSaveUserItem(t *testing.T) {
 			User: userID,
 		}
 		require.NoError(t, storage.SaveUserItem(item))
-		lastQuiz := time.Now().Truncate(time.Nanosecond)
+		lastQuiz := time.Now().UTC().Truncate(time.Nanosecond)
 		item.LastQuiz = &lastQuiz
 		assert.NoError(t, storage.SaveUserItem(item))
 		storage.db.View(func(tx *bolt.Tx) error {

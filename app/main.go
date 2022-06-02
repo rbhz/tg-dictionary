@@ -12,6 +12,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// Opts describes CLI options for the app
 type Opts struct {
 	BotToken              string `long:"bot-token" env:"BOT_TOKEN" required:"true" description:"Telegram bot token"`
 	BoltDB                string `long:"boltdb" env:"BOLTDB" default:"./dict.data" description:"Path to BoltDB"`
@@ -67,20 +68,19 @@ func getStorage(opts Opts) (db.Storage, func()) {
 		}
 		return redisStorage, func() {}
 
-	} else {
-		boltDB, err := bolt.Open(opts.BoltDB, 0600, nil)
+	}
+	boltDB, err := bolt.Open(opts.BoltDB, 0600, nil)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create boltDB database")
+	}
+	boltStorage, err := db.NewBoltStorage(boltDB)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to bolt storage")
+	}
+	return boltStorage, func() {
+		err := boltDB.Close()
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to create boltDB database")
-		}
-		boltStorage, err := db.NewBoltStorage(boltDB)
-		if err != nil {
-			log.Fatal().Err(err).Msg("failed to bolt storage")
-		}
-		return boltStorage, func() {
-			err := boltDB.Close()
-			if err != nil {
-				log.Error().Err(err).Msg("failed to close boltDB database")
-			}
+			log.Error().Err(err).Msg("failed to close boltDB database")
 		}
 	}
 }
