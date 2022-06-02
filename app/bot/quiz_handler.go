@@ -286,7 +286,7 @@ func (h QuizReplyHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) 
 	}
 	if err := quiz.SetResult(choice, b.DB()); err != nil {
 		log.Error().Err(err).Str("quiz", quiz.ID).Int("choice", choice).Msg("failed to set quiz result")
-		response := tgbotapi.NewCallback(u.CallbackQuery.ID, "Error happend")
+		response := tgbotapi.NewCallback(u.CallbackQuery.ID, "Error happened")
 		_, _ = b.SendCallback(response)
 		return
 	}

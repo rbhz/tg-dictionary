@@ -49,8 +49,8 @@ func (c *Client) Get(word string) (items []WordResponse, err error) {
 		log.Error().
 			Str("status", resp.Status).
 			Str("body", string(body)).
-			Msg("unsuccessfull response from dictionaryapi")
-		return items, fmt.Errorf("unsuccessfull API response %v", resp.StatusCode)
+			Msg("unsuccessful response from dictionaryapi")
+		return items, fmt.Errorf("unsuccessful API response %v", resp.StatusCode)
 	}
 	if err := json.Unmarshal(body, &items); err != nil {
 		return items, fmt.Errorf("unmarshal response: %w", err)

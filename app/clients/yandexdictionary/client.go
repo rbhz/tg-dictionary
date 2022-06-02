@@ -54,8 +54,8 @@ func (c Client) Translate(text string, from string, to string) (TranslationRespo
 		log.Error().
 			Str("status", response.Status).
 			Str("body", string(body)).
-			Msg("unsuccessfull response from yandex dictionary API")
-		return result, fmt.Errorf("unsuccessfull API response %v", response.StatusCode)
+			Msg("unsuccessful response from yandex dictionary API")
+		return result, fmt.Errorf("unsuccessful API response %v", response.StatusCode)
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
 		return result, fmt.Errorf("unmarshal response: %w", err)
