@@ -77,14 +77,18 @@ func (s *authService) TelegramRedirectHandler(w http.ResponseWriter, r *http.Req
 	hash := hex.EncodeToString(h.Sum(nil))
 	if hash != r.URL.Query().Get("hash") {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("unauthorized"))
+		if _, err := w.Write([]byte("unauthorized")); err != nil {
+			log.Warn().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 	userID, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 	if err != nil {
 		log.Error().Err(err).Str("userID", r.URL.Query().Get("id")).Msg("failed to parse user id")
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid ID"))
+		if _, err := w.Write([]byte("invalid ID")); err != nil {
+			log.Warn().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 
@@ -101,7 +105,9 @@ func (s *authService) TelegramRedirectHandler(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(jdata)
+	if _, err := w.Write(jdata); err != nil {
+		log.Warn().Err(err).Msg("failed to write response")
+	}
 }
 
 // UserCtx checks authorization token and adds user to context
@@ -114,7 +120,9 @@ func (s *authService) UserCtx(next http.Handler) http.Handler {
 		requestToken = strings.Replace(requestToken, "Bearer ", "", 1)
 		if requestToken == "" {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			if _, err := w.Write([]byte("unauthorized")); err != nil {
+				log.Warn().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 		token, err := jwt.ParseWithClaims(requestToken, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -122,20 +130,26 @@ func (s *authService) UserCtx(next http.Handler) http.Handler {
 		})
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			if _, err := w.Write([]byte("unauthorized")); err != nil {
+				log.Warn().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 
 		claims := token.Claims.(*JWTClaims)
 		if claims.User == nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			if _, err := w.Write([]byte("unauthorized")); err != nil {
+				log.Warn().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 		now := time.Now().Unix()
 		if claims.NotBefore > now || claims.ExpiresAt < now {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("unauthorized"))
+			if _, err := w.Write([]byte("unauthorized")); err != nil {
+				log.Warn().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 		ctx := context.WithValue(r.Context(), ctxUserIDKey, db.UserID(*claims.User))

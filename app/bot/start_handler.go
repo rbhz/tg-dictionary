@@ -18,5 +18,5 @@ func (h StartHandler) Match(u tgbotapi.Update) bool {
 
 // Handle sends start message
 func (h StartHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
-	b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Hi! Just send me a word!"))
+	_, _ = b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Hi! Just send me a word!"))
 }

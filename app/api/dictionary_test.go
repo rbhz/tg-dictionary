@@ -18,7 +18,7 @@ func TestGetUserDictionary(t *testing.T) {
 		ts, cancel := getTestServer(storage)
 		defer cancel()
 		require.NoError(t, storage.Save(db.DictionaryItem{Word: "test"}))
-		storage.SaveUserItem(db.UserDictionaryItem{User: db.UserID(testUserID), Word: "test"})
+		require.NoError(t, storage.SaveUserItem(db.UserDictionaryItem{User: db.UserID(testUserID), Word: "test"}))
 
 		req, err := http.NewRequest(http.MethodGet, ts.URL+path, nil)
 		require.NoError(t, err)

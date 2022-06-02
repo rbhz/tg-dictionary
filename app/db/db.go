@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rbhz/tg-dictionary/app/clients/dictionaryapi"
@@ -132,16 +133,14 @@ func NewDictionaryItem(
 		item.Phonetics.Audio = phoneticAudio
 	}
 
-	if translations != nil {
-		for lang, tranlationResponse := range translations {
-			for _, d := range tranlationResponse.Definitions {
-				for _, t := range d.Translations {
-					item.Translations = append(item.Translations, translation{
-						Text:         t.Text,
-						Language:     lang,
-						PartOfSpeech: d.PartOfSpeech,
-					})
-				}
+	for lang, tranlationResponse := range translations {
+		for _, d := range tranlationResponse.Definitions {
+			for _, t := range d.Translations {
+				item.Translations = append(item.Translations, translation{
+					Text:         t.Text,
+					Language:     lang,
+					PartOfSpeech: d.PartOfSpeech,
+				})
 			}
 		}
 	}
@@ -211,9 +210,13 @@ func (q *Quiz) SetResult(choice int, s Storage) error {
 		}
 		now := time.Now().UTC()
 		item.LastQuiz = &now
-		s.SaveUserItem(item)
+		if err := s.SaveUserItem(item); err != nil {
+			return fmt.Errorf("save user item: %w", err)
+		}
 	}
-	s.SaveQuiz(*q)
+	if err := s.SaveQuiz(*q); err != nil {
+		return fmt.Errorf("save quiz: %w", err)
+	}
 	return nil
 }
 

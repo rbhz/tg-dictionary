@@ -135,7 +135,9 @@ func (b *BoltStorage) SaveUserItem(item UserDictionaryItem) error {
 		if err != nil {
 			return fmt.Errorf("marshal user dictionary item: %w", err)
 		}
-		userBucket.Put([]byte(item.Word), jdata)
+		if err := userBucket.Put([]byte(item.Word), jdata); err != nil {
+			return fmt.Errorf("put item: %w", err)
+		}
 		return nil
 	})
 }
@@ -180,7 +182,9 @@ func (b *BoltStorage) SaveQuiz(quiz Quiz) error {
 		if jerr != nil {
 			return fmt.Errorf("marshal quiz: %w", jerr)
 		}
-		bucket.Put([]byte(quiz.ID), jdata)
+		if err := bucket.Put([]byte(quiz.ID), jdata); err != nil {
+			return fmt.Errorf("put quiz: %w", err)
+		}
 		return nil
 	})
 }

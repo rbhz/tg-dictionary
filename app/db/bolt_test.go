@@ -67,13 +67,14 @@ func TestNewBoltStorage(t *testing.T) {
 		defer cleanup()
 		storage, err := NewBoltStorage(boltDB)
 		require.NoError(t, err)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			for _, b := range buckets {
 				assert.NotNil(t, tx.Bucket([]byte(b)))
 				assert.Equal(t, 0, tx.Bucket([]byte(b)).Stats().KeyN)
 			}
 			return nil
 		})
+		require.NoError(t, err)
 	})
 	t.Run("already exists", func(t *testing.T) {
 		boltDB, cleanup := getBoltDB(t)
@@ -90,13 +91,14 @@ func TestNewBoltStorage(t *testing.T) {
 
 		storage, err := NewBoltStorage(boltDB)
 		require.NoError(t, err)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			for _, b := range buckets {
 				assert.NotNil(t, tx.Bucket([]byte(b)))
 				assert.Equal(t, 0, tx.Bucket([]byte(b)).Stats().KeyN)
 			}
 			return nil
 		})
+		require.NoError(t, err)
 	})
 }
 
@@ -148,11 +150,12 @@ func TestBoltSave(t *testing.T) {
 		require.NoError(t, jerr)
 		err := storage.Save(item)
 		assert.NoError(t, err)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			wordData := tx.Bucket([]byte(bucketDictionary)).Get([]byte(item.Word))
 			assert.Equal(t, wordData, jdata)
 			return nil
 		})
+		require.NoError(t, err)
 	})
 }
 
@@ -165,11 +168,12 @@ func TestBoltSaveUser(t *testing.T) {
 		assert.NoError(t, err)
 		jdata, jerr := json.Marshal(user)
 		require.NoError(t, jerr)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			userData := tx.Bucket([]byte(bucketUsers)).Get([]byte("1"))
 			assert.Equal(t, jdata, userData)
 			return nil
 		})
+		require.NoError(t, err)
 	})
 }
 
@@ -266,7 +270,7 @@ func TestBoltSaveUserItem(t *testing.T) {
 		}
 		err := storage.SaveUserItem(item)
 		assert.NoError(t, err)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
 			bucket := allBucket.Bucket([]byte("1"))
 			require.NotNil(t, bucket)
@@ -275,6 +279,7 @@ func TestBoltSaveUserItem(t *testing.T) {
 			assert.Equal(t, jdata, bucket.Get([]byte(item.Word)))
 			return nil
 		})
+		require.NoError(t, err)
 	})
 	t.Run("rewrite", func(t *testing.T) {
 		storage, cleanup := getStorage(t)
@@ -288,7 +293,7 @@ func TestBoltSaveUserItem(t *testing.T) {
 		lastQuiz := time.Now().UTC().Truncate(time.Nanosecond)
 		item.LastQuiz = &lastQuiz
 		assert.NoError(t, storage.SaveUserItem(item))
-		storage.db.View(func(tx *bolt.Tx) error {
+		err := storage.db.View(func(tx *bolt.Tx) error {
 			allBucket := tx.Bucket([]byte(bucketUsersDictionaries))
 			bucket := allBucket.Bucket([]byte("1"))
 			require.NotNil(t, bucket)
@@ -297,6 +302,7 @@ func TestBoltSaveUserItem(t *testing.T) {
 			assert.Equal(t, jdata, bucket.Get([]byte(item.Word)))
 			return nil
 		})
+		require.NoError(t, err)
 	})
 }
 
@@ -362,13 +368,14 @@ func TestBoltSaveQuiz(t *testing.T) {
 		}
 		err := storage.SaveQuiz(quiz)
 		assert.NoError(t, err)
-		storage.db.View(func(tx *bolt.Tx) error {
+		err = storage.db.View(func(tx *bolt.Tx) error {
 			bucket := tx.Bucket([]byte(bucketQuizzes))
 			jdata, jerr := json.Marshal(quiz)
 			require.NoError(t, jerr)
 			assert.Equal(t, jdata, bucket.Get([]byte(quiz.ID)))
 			return nil
 		})
+		require.NoError(t, err)
 	})
 }
 func TestBoltGetQuiz(t *testing.T) {

@@ -61,10 +61,6 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-func ptrStr(s string) *string {
-	return &s
-}
-
 func TestTranslate(t *testing.T) {
 	validURL := "https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=test&lang=en-ru&text=time"
 	APItoken := "test"

@@ -77,7 +77,7 @@ func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 		log.Error().Err(err).Int64("user", u.Message.From.ID).Msg("failed to get user dictionary")
 	}
 	if len(dictionary) == 0 {
-		b.Send(tgbotapi.NewMessage(u.Message.Chat.ID, "You don't have any words in your dictionary"))
+		_, _ = b.Send(tgbotapi.NewMessage(u.Message.Chat.ID, "You don't have any words in your dictionary"))
 		return
 	}
 	quizWord, err := h.getRandomWord(dictionary)
@@ -88,7 +88,7 @@ func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	choices, err := h.getChoices(quizWord, quizType, dictionary, quizChoicesCount)
 	if err != nil {
 		if errors.Is(err, ErrNotEnoughWords) {
-			b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Add more words to your dictionary"))
+			_, _ = b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Add more words to your dictionary"))
 			return
 		}
 	}
@@ -115,7 +115,7 @@ func (h QuizHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	message := tgbotapi.NewMessage(u.Message.Chat.ID, text)
 	message.ParseMode = "html"
 	message.ReplyMarkup = h.getMessageKeyboard(quiz)
-	b.Send(message)
+	_, _ = b.Send(message)
 }
 
 // getRandomWord returns random word from dictionary based on last quiz time
@@ -281,19 +281,19 @@ func (h QuizReplyHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) 
 		log.Error().Err(err).Str("quiz", quizID).Msg("failed to get quiz")
 	}
 	if quiz.User != db.UserID(u.CallbackQuery.From.ID) {
-		b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown quiz"))
+		_, _ = b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown quiz"))
 		return
 	}
 	if err := quiz.SetResult(choice, b.DB()); err != nil {
 		log.Error().Err(err).Str("quiz", quiz.ID).Int("choice", choice).Msg("failed to set quiz result")
 		response := tgbotapi.NewCallback(u.CallbackQuery.ID, "Error happend")
-		b.SendCallback(response)
+		_, _ = b.SendCallback(response)
 		return
 	}
 	if quiz.Result.Correct {
-		b.Send(tgbotapi.NewMessage(u.CallbackQuery.From.ID, "Correct!"))
+		_, _ = b.Send(tgbotapi.NewMessage(u.CallbackQuery.From.ID, "Correct!"))
 	} else {
-		b.Send(tgbotapi.NewMessage(u.CallbackQuery.From.ID, "Wrong!"))
+		_, _ = b.Send(tgbotapi.NewMessage(u.CallbackQuery.From.ID, "Wrong!"))
 		h.sendItemMessage(quiz.Word, u.CallbackQuery.From.ID, b)
 	}
 	quizText, err := GetQuizMessageText(quiz)
@@ -306,7 +306,7 @@ func (h QuizReplyHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) 
 		quizText)
 	edit.ReplyMarkup = nil
 	edit.ParseMode = "html"
-	b.Send(edit)
+	_, _ = b.Send(edit)
 }
 
 func (h QuizReplyHandler) sendItemMessage(word string, user int64, b Bot) {
@@ -317,7 +317,7 @@ func (h QuizReplyHandler) sendItemMessage(word string, user int64, b Bot) {
 	text := GetItemMessageText(item)
 	msg := tgbotapi.NewMessage(user, text)
 	msg.ParseMode = "html"
-	b.Send(msg)
+	_, _ = b.Send(msg)
 }
 
 func (h QuizReplyHandler) parseQuery(u tgbotapi.Update) (ID string, choice int, err error) {

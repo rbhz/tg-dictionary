@@ -45,7 +45,9 @@ func (d dictionaryService) GetUserDictionary(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(response)
+	if _, err := w.Write(response); err != nil {
+		log.Warn().Err(err).Msg("failed to write response")
+	}
 }
 
 // GetWord returns single word data
@@ -55,7 +57,9 @@ func (d dictionaryService) GetWord(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("word not found"))
+			if _, err := w.Write([]byte("word not found")); err != nil {
+				log.Warn().Err(err).Msg("failed to write response")
+			}
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -68,7 +72,9 @@ func (d dictionaryService) GetWord(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(response)
+	if _, err := w.Write(response); err != nil {
+		log.Warn().Err(err).Msg("failed to write response")
+	}
 }
 
 // UpdateWord updates word data
@@ -82,18 +88,24 @@ func (d dictionaryService) UpdateWord(w http.ResponseWriter, r *http.Request) {
 	}
 	if !user.IsAdmin {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte("forbidden"))
+		if _, err := w.Write([]byte("forbidden")); err != nil {
+			log.Warn().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 	var word db.DictionaryItem
 	if err := json.NewDecoder(r.Body).Decode(&word); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid JSON"))
+		if _, err := w.Write([]byte("invalid JSON")); err != nil {
+			log.Warn().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 	if len(word.Meanings) == 0 && len(word.Translations) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("word must have at least one meaning or translation"))
+		if _, err := w.Write([]byte("word must have at least one meaning or translation")); err != nil {
+			log.Warn().Err(err).Msg("failed to write response")
+		}
 		return
 	}
 	if err := d.storage.Save(word); err != nil {

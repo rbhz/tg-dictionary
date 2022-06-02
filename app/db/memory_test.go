@@ -29,7 +29,7 @@ func TestInMemorySave(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		storage := NewInMemoryStorage()
 		item := DictionaryItem{Word: "test"}
-		storage.Save(item)
+		require.NoError(t, storage.Save(item))
 		resItem, err := storage.Get("test")
 		assert.NoError(t, err)
 		assert.Equal(t, item, resItem)

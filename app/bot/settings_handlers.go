@@ -32,7 +32,7 @@ func (h ListSettingsHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Updat
 			tgbotapi.NewInlineKeyboardButtonData("Quiz type", fmt.Sprintf("%v|%v", callbackIDSettings, settingQuizType)),
 		),
 	)
-	b.Send(msg)
+	_, _ = b.Send(msg)
 }
 
 // SendQuizTypesHandler sends available quiz types
@@ -84,7 +84,7 @@ func (h SendQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Upda
 			),
 		),
 	)
-	b.Send(msg)
+	_, _ = b.Send(msg)
 
 }
 
@@ -114,8 +114,11 @@ func (h SetQuizTypesHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Updat
 	case db.QuizTypeReverseTranslations:
 	default:
 		log.Error().Str("type", quizType).Msg("invalid quiz type")
-		b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown type"))
+		_, _ = b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Unknown type"))
 	}
-	b.DB().SaveUser(user)
-	b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Quiz type set"))
+	if err := b.DB().SaveUser(user); err != nil {
+		log.Error().Err(err).Msg("failed to save user")
+		return
+	}
+	_, _ = b.SendCallback(tgbotapi.NewCallback(u.CallbackQuery.ID, "Quiz type set"))
 }

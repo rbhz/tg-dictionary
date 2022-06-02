@@ -68,7 +68,7 @@ func (h WordHandler) Match(u tgbotapi.Update) bool {
 func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 	word := strings.ToLower(u.Message.Text)
 	if strings.Contains(word, " ") {
-		b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Sorry only single words are supported"))
+		_, _ = b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Sorry only single words are supported"))
 		return
 	}
 	userID := db.UserID(u.Message.From.ID)
@@ -78,23 +78,31 @@ func (h WordHandler) Handle(ctx context.Context, b Bot, u tgbotapi.Update) {
 		return
 	}
 	if item == nil {
-		b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Sorry, I don't know this word"))
+		_, _ = b.Send(tgbotapi.NewMessage(u.Message.From.ID, "Sorry, I don't know this word"))
 		return
 	}
 
 	if _, err := b.DB().GetUserItem(userID, item.Word); err != nil && errors.Is(err, db.ErrNotFound) {
-		b.DB().SaveUserItem(db.UserDictionaryItem{
+		err = b.DB().SaveUserItem(db.UserDictionaryItem{
 			User:    userID,
 			Word:    item.Word,
 			Created: time.Now().UTC(),
 		})
+		if err != nil {
+			log.Error().
+				Err(err).
+				Str("word", item.Word).
+				Int64("user", int64(userID)).
+				Msg("failed to save user item")
+			return
+		}
 	}
 
 	text := tgbotapi.NewMessage(u.Message.From.ID, GetItemMessageText(*item))
 	text.ParseMode = "html"
 	if _, err := b.Send(text); err == nil && item.Phonetics.Audio != "" {
 		audio := tgbotapi.NewAudio(u.Message.From.ID, tgbotapi.FileURL(item.Phonetics.Audio))
-		b.Send(audio)
+		_, _ = b.Send(audio)
 	}
 }
 
